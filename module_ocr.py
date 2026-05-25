@@ -91,8 +91,10 @@ def setup_tesseract():
     except pytesseract.TesseractNotFoundError:
         pass
 
-    # Windows 常见安装路径列表
+    # Windows 常见安装路径 + 本地 tools 目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     common_paths = [
+        os.path.join(script_dir, "tools", "tesseract", "tesseract.exe"),
         r"C:\Program Files\Tesseract-OCR\tesseract.exe",
         r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
         os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe")

@@ -36,7 +36,8 @@ FH6_AutoBot/
 ├── module_ocr.py              # 👁️ 计算机视觉模块（OCR / 模板匹配 / 颜色检测）
 ├── utils.py                   # 🔧 公共工具（日志 / 窗口操作 / 手柄封装 / MSS 截图）
 ├── templates/                 # 📸 视觉模板图片（菜单标签 / 导航锚点 / 目标车辆）
-└── image/options/             # 🖼️ 比赛选项菜单模板
+├── setup.py                   # ⚙️ 一键环境安装脚本
+└── requirements.txt           # 📋 Python 依赖列表
 ```
 
 ---
@@ -56,8 +57,8 @@ FH6_AutoBot/
 
 #### 🖥️ 软件环境
 1. **Python 3.12+**
-2. **Tesseract OCR** — [下载安装](https://github.com/tesseract-ocr/tesseract)
-3. **ViGEmBus** 驱动 — [下载安装](https://github.com/ViGEm/ViGEmBus/releases)
+2. **Tesseract OCR** — [下载安装](https://github.com/UB-Mannheim/tesseract/releases)（安装时勾选 Add to PATH）
+3. **ViGEmBus** 驱动 — [下载安装](https://github.com/ViGEm/ViGEmBus/releases)（安装后需重启）
 4. 游戏需运行在 **窗口化** 或 **无边框窗口** 模式
 5. 建议分辨率: **2560×1440**（模板基于此分辨率截取）
 
@@ -68,11 +69,13 @@ FH6_AutoBot/
 
 > ⚠️ 主力车的 S2 蓝色 PI 徽章是程序区分"保留车"与"可删除车"的关键依据，请务必完成改装。
 
-### 安装依赖
+### 一键安装
 
 ```bash
-pip install -r requirements.txt
+python setup.py
 ```
+
+自动完成：安装 Python 依赖 → 检测 Tesseract OCR → 检测 ViGEmBus 驱动
 
 ---
 

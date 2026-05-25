@@ -13,6 +13,9 @@ test_from_state.py
 race_state.json
 play_archive.txt
 
+# Local tools (Tesseract etc.)
+tools/
+
 # IDE
 .vscode/
 .idea/
