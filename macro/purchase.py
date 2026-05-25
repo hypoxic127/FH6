@@ -8,12 +8,14 @@ import os
 import cv2
 import numpy as np
 import vgamepad as vg
-from utils import log_info, log_success, log_warning, log_error
+from utils import log_info, log_success, log_warning, log_error, safe_print, find_game_window
 from utils import press_button as _press_button
 from macro.core import (
     capture_screenshot, capture_raw_screenshot,
-    log_step_header, log_state_header
+    log_step_header, log_state_header,
+    CARS_TO_PROCESS,
 )
+from macro.navigation import get_current_menu_state
 import pytesseract
 import re
 import module_ocr

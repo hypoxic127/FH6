@@ -8,7 +8,7 @@ import os
 import cv2
 import numpy as np
 import vgamepad as vg
-from utils import log_info, log_success, log_warning, log_error
+from utils import log_info, log_success, log_warning, log_error, safe_print
 from utils import press_button as _press_button
 from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
