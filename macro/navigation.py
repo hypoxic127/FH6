@@ -171,12 +171,12 @@ def navigate_menu_to_garage(hwnd, gamepad, anchor_templates=None):
             continue
 
         try:
-            # 大左侧含签栏 + 大 + 项
+            # 截取左上角区域（含标签栏 + 菜单项）
 
             h, w = resized.shape[:2]
             roi = resized[0:h//2, 0:w//2]
             gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-            # 深度检测度
+            # 二值化处理提高 OCR 识别精度
 
             _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
             text = pytesseract.image_to_string(thresh).strip().lower()
@@ -242,19 +242,19 @@ def safe_exit_to_menu(hwnd, gamepad, anchor_template="templates/btn_My_car.png")
     尝试 8 次灰度匹配，若 anchor_template 匹配分 >= 0.70 则判定已回到主菜单。
     """
     log_info("正在执行视觉刹车主程序 safe_exit_to_menu()...")
-    # 读传模板转为灰度
+    # 读取模板并转为灰度
 
     template = cv2.imread(anchor_template, cv2.IMREAD_GRAYSCALE)
     if template is None:
         log_error(f"  [!] 无法加载模板: {anchor_template}，启用保底异常处理")
-        raise FileNotFoundError(f"载模板: {anchor_template}")
+        raise FileNotFoundError(f"无法加载模板: {anchor_template}")
 
     max_exit_loops = 8
     for loop_idx in range(1, max_exit_loops + 1):
         log_info(f"  -> [视觉刹车第 {loop_idx}/{max_exit_loops} 次] 截屏寻找锚点...")
         resized_exit, _, _, _, _ = capture_screenshot(hwnd)
         if resized_exit is not None:
-            # 屏幕灰度
+            # 截图转灰度
 
             gray_screen = cv2.cvtColor(resized_exit, cv2.COLOR_BGR2GRAY)
             # 使用 cv2.matchTemplate 寻找 anchor_template
@@ -277,7 +277,7 @@ def safe_exit_to_menu(hwnd, gamepad, anchor_template="templates/btn_My_car.png")
 
         time.sleep(2.0)
 
-    raise TimeoutError(" 车循 8 次仍主！")
+    raise TimeoutError("连续 8 次视觉刷车仍未回到主菜单！")
 
 def return_to_garage(hwnd, gamepad, anchor_templates=None):
     """

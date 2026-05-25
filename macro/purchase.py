@@ -104,13 +104,13 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad, loaded_menus, loaded_anch
 
                     is_text_valid = module_ocr.verify_journal_text(card_crop)
                     if is_text_valid:
-                        # 严格绿中边校确保该卡确被亮中！
+                        # 严格绿色选中边框校验，确保该卡片确实被高亮选中
 
                         is_selected = module_ocr.has_green_selection_border(card_crop)
                         log_info(f"OCR 严格校验: 通过, 绿色选中边框校验: {'通过' if is_selected else '未通过'}")
 
                     else:
-                        log_info(f"严格: ")
+                        log_info(f"OCR 严格校验: 未通过")
 
                 else:
                     if max_val_st >= 0.80:
@@ -148,11 +148,9 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad, loaded_menus, loaded_anch
 
     # ==================================================
 
-    log_step_header(2, " Collection Journal 页面中并 Navigator")
-    log_info("已 Collection Journal 页面移以中 Navigator...")
-    for i in range(1):
-        log_info(f"第 {i+1}/1 次移 D-pad Right...")
-        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT, delay=0.8)  # 等待焦点稳定移动
+    log_step_header(2, "Collection Journal 页面中选中 Navigator")
+    log_info("已进入 Collection Journal 页面，按 D-pad Right 移动到 Navigator...")
+    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT, delay=0.8)
 
     # 对 Navigator 精确校验！
 
@@ -188,10 +186,10 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad, loaded_menus, loaded_anch
 
             is_nav_text_valid = module_ocr.verify_navigator_text(nav_crop)
             if is_nav_text_valid:
-                # 严格绿亮中边校
+                # 严格绿色高亮选中边框校验
 
                 is_nav_selected = module_ocr.has_green_selection_border_padded(resized_nav, nav_crop_x, nav_crop_y, t_w, t_h)
-                log_info(f"Navigator 严格: , 绿中边校: {'' if is_nav_selected else ''}")
+                log_info(f"Navigator OCR 严格校验: 通过, 绿色选中边框: {'通过' if is_nav_selected else '未通过'}")
 
             else:
                 log_info(f"Navigator 严格: ")
@@ -216,11 +214,9 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad, loaded_menus, loaded_anch
 
     # ==================================================
 
-    log_step_header(3, " Navigator 子中中并 Car Collection")
-    log_info("已 Navigator 子页面正使 D-pad Down 移以中 Car Collection...")
-    for i in range(1):
-        log_info(f"第 {i+1}/1 次移动 D-pad Down...")
-        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.8)  # 等待焦点稳定移动
+    log_step_header(3, "Navigator 子菜单中选中 Car Collection")
+    log_info("已进入 Navigator 子页面，按 D-pad Down 移动到 Car Collection...")
+    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.8)
 
     # 对 Car Collection 执行模板 + OCR + 绿色高亮校验
 
@@ -386,13 +382,11 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad, loaded_menus, loaded_anch
 
     # ==================================================
 
-    log_step_header(5, " Subaru 表中并 Impreza")
-    log_info("已进入 Subaru 列表，正在使用 D-pad Down 移动以选中 Impreza...")
-    for i in range(1):
-        log_info(f"第 {i+1}/1 次移 D-pad Down...")
-        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.8)  # 等待焦点稳定移动
+    log_step_header(5, "Subaru 列表中选中 Impreza")
+    log_info("已进入 Subaru 列表，按 D-pad Down 移动到 Impreza...")
+    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.8)
 
-    # 对 Impreza 精模板OCR 绿亮校！
+    # 对 Impreza 执行模板 + OCR + 绿色高亮校验
 
     log_info("正在启动 Impreza 模板+OCR+绿色高亮校验系统...")
     template_impreza = loaded_anchors["IMPREZA"]
@@ -426,7 +420,7 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad, loaded_menus, loaded_anch
 
             is_impreza_text_valid = module_ocr.verify_impreza_text(impreza_crop)
             if is_impreza_text_valid:
-                # 3. 严格绿亮中边校
+                # 3. 严格绿色高亮选中边框校验
 
                 is_impreza_selected = module_ocr.has_green_selection_border_padded(resized_impreza, impreza_crop_x, impreza_crop_y, t_w, t_h)
                 log_info(f"Impreza OCR严格校验: 通过, 绿色选中边框校验: {'通过' if is_impreza_selected else '未通过'}")
@@ -560,15 +554,15 @@ def dynamic_navigate_to_target(template_path, vision_engine, gamepad, hwnd=None,
             x2 = min(img_w, 450)
             menu_roi = resized[y1:y2, x1:x2]
             if menu_roi.size > 0:
-                # 保存状态存
+                # 保存调试截图
 
                 if DEBUG_WRITE_FILES:
                     cv2.imwrite("debug_ocr_raw.png", menu_roi)
-                # 3大灰度以保证
+                # 3倍放大并转灰度，提高 OCR 识别精度
 
                 resized_roi = cv2.resize(menu_roi, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
                 gray = cv2.cvtColor(resized_roi, cv2.COLOR_BGR2GRAY)
-                # 保存状态为保容便们灰度为
+                # 保存灰度预处理后的调试截图
 
                 if DEBUG_WRITE_FILES:
                     cv2.imwrite("debug_menu_scan_final.png", gray)
@@ -583,10 +577,10 @@ def dynamic_navigate_to_target(template_path, vision_engine, gamepad, hwnd=None,
                             if not ocr_word:
                                 continue
 
-                            # 使强模词次校
+                            # 使用增强模糊词匹配校验
 
                             if is_word_similar(ocr_word, target_keyword):
-                                # 空坐标格式
+                                # 将 OCR 坐标换算回屏幕坐标
 
                                 locked_tx = x1 + (data['left'][i] // 3)
                                 locked_ty = y1 + (data['top'][i] // 3)

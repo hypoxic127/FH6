@@ -31,7 +31,7 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
     确保页面与 usepoints.png 模板画面一致
     """
     log_info("正在执行车辆加点宏...")
-    # 宏置延确保UI渲
+    # 宏按键延迟设置，确保 UI 渲染稳定
 
     def press(button, count=1, delay=0.8):
         for k in range(count):
