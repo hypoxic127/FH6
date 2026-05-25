@@ -6,13 +6,11 @@ macro/navigation.py — 菜单导航、视觉刹车、返回车库
 import time
 import os
 import cv2
-import numpy as np
 import vgamepad as vg
 from utils import log_info, log_success, log_warning, log_error, safe_print
 from utils import press_button as _press_button
 from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
-import module_ocr
 
 def _scan_for_subaru_page(hwnd, gamepad, anchor_templates, max_presses=15):
     """
@@ -281,7 +279,7 @@ def safe_exit_to_menu(hwnd, gamepad, anchor_template="templates/btn_My_car.png")
 
     raise TimeoutError(" 车循 8 次仍主！")
 
-def return_to_garage(hwnd, gamepad, vision_engine=None, anchor_templates=None):
+def return_to_garage(hwnd, gamepad, anchor_templates=None):
     """
     完整流程 return_to_garage()：
     在 Car Mastery Macro 执行完毕后回到车库。

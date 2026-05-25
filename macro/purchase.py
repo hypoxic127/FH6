@@ -4,9 +4,7 @@ macro/purchase.py — 5步购买导航 + 购买宏
 """
 
 import time
-import os
 import cv2
-import numpy as np
 import vgamepad as vg
 from utils import log_info, log_success, log_warning, log_error, safe_print, find_game_window
 from utils import press_button as _press_button
@@ -17,7 +15,6 @@ from macro.core import (
 )
 from macro.navigation import get_current_menu_state
 import pytesseract
-import re
 import module_ocr
 from module_ocr import DEBUG_WRITE_FILES
 

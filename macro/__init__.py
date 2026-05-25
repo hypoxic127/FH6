@@ -237,7 +237,7 @@ def run_master_bot_loop(initial_state=None):
                             _scan_for_subaru_page(hwnd, gamepad, anchor_templates)
                             break
 
-                        return_to_garage(hwnd, gamepad, module_ocr, anchor_templates=anchor_templates)
+                        return_to_garage(hwnd, gamepad, anchor_templates=anchor_templates)
 
                     log_success(f"加点阶段完成！共加点 {upgraded_count - 1} 辆车")
                     current_state = STATE_TRASH_CARS
