@@ -18,6 +18,7 @@ FORZA HORIZON 6 AUTOBOT — 调试测试入口 (test_from_state.py)
 import sys
 import time
 import cv2
+import pytesseract
 import vgamepad as vg
 from colorama import init, Fore, Style
 
@@ -46,6 +47,8 @@ TEST_OPTIONS = {
     "14": "ocr_available_points   OCR测试: 截图检测 Available Points (前提: 游戏在技能树界面)",
     "15": "debug_new_tag          NEW标签调试: 截图分析所有卡片黄色像素 (前提: 游戏在车库网格界面)",
     "16": "ocr_card_text          OCR测试: 截图读取卡片车型文字 (前提: 游戏在车库网格界面)",
+    "17": "trigger_low_points     模拟触发条件2: 技能点不足退出流程 (前提: 游戏在技能树界面)",
+    "18": "subaru_tab_brightness  SUBARU标签亮度检测: 判断是否在Subaru页面 (前提: 游戏在车库网格界面)",
 }
 
 
@@ -60,7 +63,7 @@ def print_menu():
         "📍 导航类": ["1", "2", "3", "10"],
         "🚗 车库操作类": ["4", "5", "6", "9"],
         "🗑️ 删车/购买类": ["7", "11", "12"],
-        "🔄 完整流程类": ["8"],
+        "🔄 完整流程类": ["8", "17"],
         "🔍 OCR 调试类": ["13", "14", "15", "16"],
     }
     for cat_name, keys in categories.items():
@@ -326,25 +329,28 @@ def test_ocr_car_select(hwnd):
 
     for attempt in range(3):
         print(f"\n  --- 第 {attempt + 1}/3 次截图 ---")
-        resized, _, _, _, _ = module_macro.capture_screenshot(hwnd)
-        if resized is None:
+        # 使用原始分辨率截图
+        raw_img = module_macro.capture_raw_screenshot(hwnd)
+        if raw_img is None:
             module_macro.log_error("截图失败！")
             time.sleep(1.0)
             continue
 
-        h, w = resized.shape[:2]
+        h, w = raw_img.shape[:2]
+        print(f"    原始分辨率: {w}x{h}")
+
         # 测试多种 ROI 范围
         rois = {
-            "ROI_A (4-12%, 0-20%)":  resized[int(h*0.04):int(h*0.12), 0:int(w*0.20)],
-            "ROI_B (7-14%, 0-15%)":  resized[int(h*0.07):int(h*0.14), 0:int(w*0.15)],
-            "ROI_C (5-15%, 0-25%)":  resized[int(h*0.05):int(h*0.15), 0:int(w*0.25)],
-            "ROI_D (3-10%, 0-20%)":  resized[int(h*0.03):int(h*0.10), 0:int(w*0.20)],
+            "ROI_A (4-12%, 0-20%)":  raw_img[int(h*0.04):int(h*0.12), 0:int(w*0.20)],
+            "ROI_B (7-14%, 0-15%)":  raw_img[int(h*0.07):int(h*0.14), 0:int(w*0.15)],
+            "ROI_C (5-15%, 0-25%)":  raw_img[int(h*0.05):int(h*0.15), 0:int(w*0.25)],
+            "ROI_D (3-10%, 0-20%)":  raw_img[int(h*0.03):int(h*0.10), 0:int(w*0.20)],
         }
         for name, roi in rois.items():
             gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
             text = pytesseract.image_to_string(thresh, config='--psm 7').strip()
-            has_car_select = "car" in text.lower() and "select" in text.lower()
+            has_car_select = "car" in text.lower() and "selec" in text.lower()
             status = f"{Fore.GREEN}✅ 命中！" if has_car_select else f"{Fore.RED}✗ 未命中"
             print(f"    {name}: OCR='{text}' → {status}{Style.RESET_ALL}")
             # 保存调试图片
@@ -352,7 +358,7 @@ def test_ocr_car_select(hwnd):
             cv2.imwrite(f"debug_{debug_name}_thresh.png", thresh)
             cv2.imwrite(f"debug_{debug_name}_roi.png", roi)
 
-        print(f"\n  💾 调试图片已保存到当前目录 (debug_roi_*.png, debug_roi_*_thresh.png)")
+        print(f"\n  💾 调试图片已保存: debug_roi_*.png")
         time.sleep(2.0)
 
     module_macro.log_success("🎉 OCR Car Select 测试完成！")
@@ -370,36 +376,45 @@ def test_ocr_available_points(hwnd):
 
     for attempt in range(3):
         print(f"\n  --- 第 {attempt + 1}/3 次截图 ---")
-        resized, _, _, _, _ = module_macro.capture_screenshot(hwnd)
-        if resized is None:
+        # 使用原始分辨率截图
+        raw_img = module_macro.capture_raw_screenshot(hwnd)
+        if raw_img is None:
             module_macro.log_error("截图失败！")
             time.sleep(1.0)
             continue
 
-        h, w = resized.shape[:2]
+        h, w = raw_img.shape[:2]
+        print(f"    原始分辨率: {w}x{h}")
+
         # 测试多种 ROI 范围
         rois = {
-            "ROI_A (85-100%, 0-50%)":   resized[int(h*0.85):h, 0:int(w*0.50)],
-            "ROI_B (87-93%, 20-45%)":   resized[int(h*0.87):int(h*0.93), int(w*0.20):int(w*0.45)],
-            "ROI_C (85-95%, 15-50%)":   resized[int(h*0.85):int(h*0.95), int(w*0.15):int(w*0.50)],
-            "ROI_D (88-94%, 0-30%)":    resized[int(h*0.88):int(h*0.94), 0:int(w*0.30)],
+            "ROI_BEST (84-88%, 28-50%)": raw_img[int(h*0.84):int(h*0.88), int(w*0.28):int(w*0.50)],
+            "ROI_WIDE (83-89%, 25-55%)": raw_img[int(h*0.83):int(h*0.89), int(w*0.25):int(w*0.55)],
+            "ROI_OLD  (85-95%, 15-50%)": raw_img[int(h*0.85):int(h*0.95), int(w*0.15):int(w*0.50)],
         }
+
         for name, roi in rois.items():
             gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            upscaled = cv2.resize(thresh, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
-            text_full = pytesseract.image_to_string(upscaled, config='--psm 7').strip()
-            text_digits = pytesseract.image_to_string(upscaled, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
-            numbers = re.findall(r'\d+', text_digits)
-            pts = int(numbers[0]) if numbers else -1
-            print(f"    {name}:")
-            print(f"      全文: '{text_full}' | 数字: '{text_digits}' → 解析: {pts}")
-            # 保存调试图片
-            debug_name = name.split(" ")[0].lower()
-            cv2.imwrite(f"debug_ap_{debug_name}_thresh.png", thresh)
-            cv2.imwrite(f"debug_ap_{debug_name}_roi.png", roi)
+            # 测试两种阈值
+            for tname, thresh_val in [("t150", 150), ("otsu", None)]:
+                if thresh_val is not None:
+                    _, binary = cv2.threshold(gray, thresh_val, 255, cv2.THRESH_BINARY)
+                else:
+                    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                upscaled = cv2.resize(binary, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+                text_digits = pytesseract.image_to_string(upscaled, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
+                numbers = re.findall(r'\d+', text_digits)
+                pts = int(numbers[0]) if numbers else -1
+                status = f"{Fore.GREEN}✅ 命中" if pts > 0 else f"{Fore.RED}✗ 未命中"
+                print(f"    {name} | {tname}: '{text_digits}' → {pts} {status}{Style.RESET_ALL}")
 
-        print(f"\n  💾 调试图片已保存到当前目录 (debug_ap_*.png)")
+            # 保存调试图片（只保存第一个阈值的）
+            _, binary_save = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+            debug_tag = name.split("(")[0].strip().lower().replace(" ", "_")
+            cv2.imwrite(f"debug_ap_{debug_tag}_roi.png", roi)
+            cv2.imwrite(f"debug_ap_{debug_tag}_thresh.png", binary_save)
+
+        print(f"\n  💾 调试图片已保存: debug_ap_*.png")
         time.sleep(2.0)
 
     module_macro.log_success("🎉 OCR Available Points 测试完成！")
@@ -512,6 +527,110 @@ def test_ocr_card_text(hwnd):
 
     module_macro.log_success("🎉 顶栏 OCR 测试完成！")
 
+
+def test_trigger_low_points(hwnd, gamepad, anchor_templates):
+    """测试 17: 模拟触发条件 2 — 技能点不足退出流程"""
+    import vgamepad as vg
+    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}==================================================")
+    print(f"   🧪 测试: 触发条件 2 — 技能点不足退出流程")
+    print(f"   流程: B×2(退技能树) → Up×1 → A×1(进车库) → LB扫Subaru")
+    print(f"         → 选主力车 → A×1(选中) → A×1(进车库) → LB扫Subaru")
+    print(f"   前提: 游戏在技能树界面")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}=================================================={Style.RESET_ALL}\n")
+    countdown()
+
+    # B × 2 退出技能树
+    module_macro.log_info("  -> B × 2 退出技能树...")
+    module_macro._press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_B, delay=1.0)
+    module_macro._press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_B, delay=1.0)
+
+    # Up × 1
+    module_macro.log_info("  -> Up × 1...")
+    module_macro._press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.5)
+
+    # A × 1 进入车库
+    module_macro.log_info("  -> A × 1 进入车库...")
+    module_macro._press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
+
+    # LB 扫描 Subaru 页面标签
+    module_macro.log_info("  -> LB 扫描 Subaru 页面...")
+    module_macro._scan_for_subaru_page(hwnd, gamepad, anchor_templates)
+
+    # 选中主力车
+    module_macro.log_info("  -> 正在选中主力车...")
+    module_macro.navigate_to_main_car(hwnd, gamepad)
+
+    # A × 1 选中主力车
+    module_macro.log_info("  -> A × 1 选中主力车...")
+    module_macro._press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
+
+    # 等待检测 'Cars' 再按 A 进入车库
+    if module_macro._wait_for_cars_text(hwnd):
+        module_macro.log_info("  -> A × 1 进入车库 (已确认 Cars)...")
+        module_macro._press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
+    else:
+        module_macro.log_warning("  ⚠️ 未检测到 Cars，跳过 A 按键")
+
+    # LB 扫描 Subaru 页面
+    module_macro._scan_for_subaru_page(hwnd, gamepad, anchor_templates)
+
+    module_macro.log_success("🎉 触发条件 2 测试完成！")
+
+
+def test_subaru_tab_brightness(hwnd):
+    """测试 18: SUBARU 标签动态检测"""
+    import numpy as np
+
+    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}==================================================")
+    print(f"   🧪 测试: 选中品牌标签动态检测")
+    print(f"   动态找暗区 → OCR 读选中标签 → 判断是否 SUBARU")
+    print(f"   前提: 游戏在车库网格界面")
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}=================================================={Style.RESET_ALL}\n")
+
+    raw_img = module_macro.capture_raw_screenshot(hwnd)
+    if raw_img is None:
+        module_macro.log_error("截图失败！")
+        return
+
+    rh, rw = raw_img.shape[:2]
+    module_macro.log_info(f"分辨率: {rw}x{rh}")
+
+    # 标签栏: y14-18%
+    tab_strip = raw_img[int(rh * 0.14):int(rh * 0.18), :]
+    tab_gray = cv2.cvtColor(tab_strip, cv2.COLOR_BGR2GRAY)
+
+    # 滑动窗口找最暗区域
+    win = int(rw * 0.08)
+    min_mean, min_x = 999, 0
+    for xi in range(int(rw * 0.05), rw - win, 5):
+        m = float(np.mean(tab_gray[:, xi:xi + win]))
+        if m < min_mean:
+            min_mean = m; min_x = xi
+
+    xs, xe = min_x, min_x + win
+    while xs > 0 and float(np.mean(tab_gray[:, max(0, xs-10):xs])) < 120:
+        xs -= 10
+    while xe < rw and float(np.mean(tab_gray[:, xe:min(rw, xe+10)])) < 120:
+        xe += 10
+
+    module_macro.log_info(f"选中标签暗区: x={xs}-{xe} ({xs*100/rw:.0f}%-{xe*100/rw:.0f}%), 最低亮度={min_mean:.0f}")
+
+    # OCR 选中标签
+    sel_roi = tab_strip[:, xs:xe]
+    sel_gray = cv2.cvtColor(sel_roi, cv2.COLOR_BGR2GRAY)
+    _, sel_thresh = cv2.threshold(sel_gray, 150, 255, cv2.THRESH_BINARY)
+    sel_text = pytesseract.image_to_string(sel_thresh, config='--psm 7').strip().lower()
+
+    module_macro.log_info(f"选中标签 OCR: '{sel_text}'")
+
+    if "subaru" in sel_text:
+        module_macro.log_success(f"✅ 当前在 Subaru 页面 (OCR: '{sel_text}')")
+    else:
+        module_macro.log_warning(f"⚠️ 当前不在 Subaru 页面 (OCR: '{sel_text}')")
+
+    module_macro.log_success("🎉 标签检测完成！")
+
+
 # ==========================================
 # 主入口
 # ==========================================
@@ -567,6 +686,10 @@ if __name__ == "__main__":
             test_debug_new_tag(hwnd)
         elif choice == "16":
             test_ocr_card_text(hwnd)
+        elif choice == "17":
+            test_trigger_low_points(hwnd, gamepad, anchor_templates)
+        elif choice == "18":
+            test_subaru_tab_brightness(hwnd)
     except KeyboardInterrupt:
         print()
         module_macro.log_warning("==================================================")

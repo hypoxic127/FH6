@@ -756,14 +756,13 @@ def check_is_high_class(image, cursor_x, cursor_y):
     """
     检测当前卡片的车辆是否为高级别（S1/S2 等）。
 
-    用途：在删车流程中保护用户的主力车（S2 826 Impreza）不被误删。
+    用途：在删车流程中保护用户的主力车（S2 825 Impreza）不被误删。
     B 级车是可以安全删除的，而 S1/S2 级别的车是用户手动升级的主力车。
 
-    检测原理：
-    PI（Performance Index）徽章位于卡片底部 70%-82% 高度、右侧 55% 区域。
-    S1/S2 级别的 PI 徽章有明显的紫色背景。
-    通过 HSV 检测紫色像素（H=100-170）数量来判定级别：
-    紫色像素 > 300 → S1/S2 级别（应跳过），否则 → B 级（可删除）
+    检测原理（基于 PI 徽章颜色）：
+    - S2 主力车: 徽章左半部分是 **蓝色**，右半部分是黑色
+    - B 级车:    徽章左半部分是 **橙色**，右半部分是黑色
+    通过 HSV 检测蓝色 vs 橙色像素数量来判定级别。
 
     参数:
         image: 1600×900 BGR 格式截图
@@ -787,19 +786,35 @@ def check_is_high_class(image, cursor_x, cursor_y):
             return False
         
         card_h, card_w = card.shape[:2]
-        # PI 徽章位于卡片底部 70%-82% 高度的右侧 55% 区域
-        badge = card[int(card_h*0.70):int(card_h*0.82), int(card_w*0.55):]
+        # PI 徽章: 卡片高度 68%-82%、右 35% 区域（65%+ 宽度）
+        # 只看右侧 PI 徽章 (S2/B)，完全避开左侧 LEGENDARY 金色标签
+        badge = card[int(card_h*0.68):int(card_h*0.82), int(card_w*0.65):]
         
         hsv = cv2.cvtColor(badge, cv2.COLOR_BGR2HSV)
-        # S1/S2 级别的紫色范围: H=100-170, S>30, V>30
-        purple_mask = cv2.inRange(hsv, np.array([100, 30, 30]), np.array([170, 255, 255]))
-        purple_pixels = cv2.countNonZero(purple_mask)
         
-        is_high = purple_pixels > 300
+        # 蓝色 (S1/S2 徽章): H=100-130, S>50, V>50
+        blue_mask = cv2.inRange(hsv, np.array([100, 50, 50]), np.array([130, 255, 255]))
+        blue_pixels = cv2.countNonZero(blue_mask)
+        
+        # 橙色 (B 级徽章): H=5-25, S>100, V>100
+        orange_mask = cv2.inRange(hsv, np.array([5, 100, 100]), np.array([25, 255, 255]))
+        orange_pixels = cv2.countNonZero(orange_mask)
+        
+        # 判定: 蓝色多 → S2，橙色多 → B 级
+        if blue_pixels > orange_pixels and blue_pixels > 50:
+            log_warning(f"[PI 检测] ⚠ 检测到高级别车辆 (蓝色: {blue_pixels} > 橙色: {orange_pixels})")
+            return True
+        
+        if orange_pixels > blue_pixels and orange_pixels > 50:
+            log_success(f"[PI 检测] ✓ B 级车辆 (橙色: {orange_pixels} > 蓝色: {blue_pixels})")
+            return False
+        
+        # 兜底: 两种颜色都少，用蓝色阈值判定
+        is_high = blue_pixels > 50
         if is_high:
-            log_warning(f"[PI 检测] ⚠ 检测到高级别车辆 (紫色像素: {purple_pixels} > 300)，跳过")
+            log_warning(f"[PI 检测] ⚠ 可能是高级别车辆 (蓝色: {blue_pixels}, 橙色: {orange_pixels})")
         else:
-            log_success(f"[PI 检测] ✓ B 级车辆 (紫色像素: {purple_pixels} <= 300)")
+            log_success(f"[PI 检测] ✓ B 级车辆 (蓝色: {blue_pixels}, 橙色: {orange_pixels})")
         return is_high
     except Exception as e:
         log_error(f"check_is_high_class 出错: {e}")

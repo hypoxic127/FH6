@@ -771,6 +771,22 @@ def main(gamepad=None):
                 os.makedirs("debug", exist_ok=True)
                 cv2.imwrite("debug/unknown_state.png", img)
             
+            # Auto-recovery: try to escape stuck screens
+            if unknown_consecutive_count >= 15 and not waiting_for_gameplay:
+                if unknown_consecutive_count % 15 == 0:
+                    log_warning(f"  [AUTO-RECOVERY] 连续 {unknown_consecutive_count} 次 UNKNOWN，尝试按 B 退出卡住画面...")
+                    press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_B, delay=1.0)
+                if unknown_consecutive_count % 30 == 0:
+                    log_warning(f"  [AUTO-RECOVERY] 连续 {unknown_consecutive_count} 次 UNKNOWN，尝试按 Start 打开菜单...")
+                    press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_START, delay=1.0)
+                if unknown_consecutive_count % 60 == 0:
+                    log_warning(f"  [AUTO-RECOVERY] 连续 {unknown_consecutive_count} 次 UNKNOWN，尝试重新获取窗口焦点...")
+                    import module_macro as _mm
+                    _recovery_hwnd = _mm.find_game_window()
+                    if _recovery_hwnd:
+                        _mm.force_foreground(_recovery_hwnd)
+                    time.sleep(2.0)
+
             # Provide high-visibility diagnostic warnings to help the user resolve focus/obscured screen issues
             if unknown_consecutive_count >= 5 and not waiting_for_gameplay:
                 log_warning("==================================================================")
