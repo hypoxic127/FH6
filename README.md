@@ -54,16 +54,24 @@ FH6_AutoBot/
 
 ### 前置要求
 
+#### 🖥️ 软件环境
 1. **Python 3.12+**
 2. **Tesseract OCR** — [下载安装](https://github.com/tesseract-ocr/tesseract)
 3. **ViGEmBus** 驱动 — [下载安装](https://github.com/ViGEm/ViGEmBus/releases)
 4. 游戏需运行在 **窗口化** 或 **无边框窗口** 模式
 5. 建议分辨率: **2560×1440**（模板基于此分辨率截取）
 
+#### 🎮 游戏内准备
+1. **购买主力车**: 1998 Subaru Impreza 22B-STI Version
+2. **安装 S2 级改装**: 对该车安装任意 S2 级改装方案（PI 徽章显示蓝色）
+3. **收藏蓝图**: 搜索并收藏蓝图代码 `890169683`（用于 EventLab 自动跑图刷技能点）
+
+> ⚠️ 主力车的 S2 蓝色 PI 徽章是程序区分"保留车"与"可删除车"的关键依据，请务必完成改装。
+
 ### 安装依赖
 
 ```bash
-pip install opencv-python pytesseract numpy mss vgamepad colorama
+pip install -r requirements.txt
 ```
 
 ---
