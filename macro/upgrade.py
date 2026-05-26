@@ -69,30 +69,40 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
     time.sleep(1.0)  # 等待 UI 刷新
     available_points = -1
     try:
-        # 使用原始分辨率截图，避免缩放导致文字模糊
+        from collections import Counter
         raw_img = capture_raw_screenshot(hwnd)
         if raw_img is not None:
             h, w = raw_img.shape[:2]
-            # Available Points 黄色数字精确位置:
-            #   y: 85-89% 高度 (底部 Available Points 行)
-            #   x: 34-38.5% 宽度 (只截数字，排除右侧星形图标)
-            roi_ap = raw_img[int(h * 0.85):int(h * 0.89), int(w * 0.34):int(w * 0.385)]
-            # 使用 HSV 黄色通道提取 — 数字是黄色 (H=20-45)，精确隔离数字像素
-            hsv_ap = cv2.cvtColor(roi_ap, cv2.COLOR_BGR2HSV)
-            yellow_mask = cv2.inRange(hsv_ap, np.array([20, 80, 150]), np.array([45, 255, 255]))
-            # 反色：Tesseract 期望黑字白底
-            inverted_ap = cv2.bitwise_not(yellow_mask)
-            # 加边距 + 4 倍放大，提高小字体识别率
-            padded_ap = cv2.copyMakeBorder(inverted_ap, 20, 20, 20, 20, cv2.BORDER_CONSTANT, value=255)
-            upscaled_ap = cv2.resize(padded_ap, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
-            text_ap = pytesseract.image_to_string(upscaled_ap, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
-            numbers = re.findall(r'\d+', text_ap)
-            if numbers:
-                available_points = int(numbers[0])
-            log_info(f"  [Available Points] OCR 读取: '{text_ap}' → 解析: {available_points} ({w}x{h})")
-            if available_points >= 0 and available_points < min_points:
-                log_warning(f"  ⚠️ Available Points = {available_points} < {min_points}，技能点不足！")
-                return available_points
+            ocr_results = []
+
+            # 窄 ROI: 只裁数字区域 (排除左侧标签文字和右侧星形图标)
+            roi = raw_img[int(h * 0.85):int(h * 0.89), int(w * 0.34):int(w * 0.385)]
+            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+            # 两种阈值 × PSM 7，共 2 次 OCR 投票
+            for tname, thresh_img in [
+                ("t100", cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)[1]),
+                ("otsu", cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]),
+            ]:
+                up = cv2.resize(thresh_img, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+                text = pytesseract.image_to_string(up, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
+                nums = re.findall(r'\d+', text)
+                if nums:
+                    ocr_results.append(int(nums[0]))
+
+            # 投票（平票取最大值：OCR 更容易漏掉前导数字）
+            if ocr_results:
+                counter = Counter(ocr_results)
+                top_count = counter.most_common(1)[0][1]
+                tied = [val for val, cnt in counter.items() if cnt == top_count]
+                available_points = max(tied)
+                log_info(f"  [Available Points] OCR: {available_points} (读数: {ocr_results}, {w}x{h})")
+            else:
+                log_warning("  [Available Points] OCR 未识别到数字！")
+
+        if available_points >= 0 and available_points < min_points:
+            log_warning(f"  ⚠️ Available Points = {available_points} < {min_points}，技能点不足！")
+            return available_points
     except Exception as e:
         log_warning(f"  [Available Points] OCR 异常: {e}")
 
