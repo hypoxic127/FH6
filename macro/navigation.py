@@ -16,6 +16,7 @@ def _scan_for_subaru_page(hwnd, gamepad, anchor_templates, max_presses=15):
     """
     车库内循环按 LB（左肩键）翻页，直到检测到 Subaru_page.png 模板。
     用于在车库网格中快速定位到 Subaru 品牌页面。
+    先检测当前画面，再按 LB 翻页，避免跳过已经在 Subaru 页面的情况。
     返回 True 表示找到，False 表示超出最大按键次数或无模板。
     """
     if not (anchor_templates and "SUBARU_PAGE" in anchor_templates):
@@ -26,6 +27,17 @@ def _scan_for_subaru_page(hwnd, gamepad, anchor_templates, max_presses=15):
 
     template_sp = anchor_templates["SUBARU_PAGE"]
     gray_template = cv2.cvtColor(template_sp, cv2.COLOR_BGR2GRAY)
+
+    # 先检查当前画面是否已经在 Subaru 页面（避免第一次 LB 跳过）
+    resized_check, _, _, _, _ = capture_screenshot(hwnd)
+    if resized_check is not None:
+        gray_screen = cv2.cvtColor(resized_check, cv2.COLOR_BGR2GRAY)
+        res = cv2.matchTemplate(gray_screen, gray_template, cv2.TM_CCOEFF_NORMED)
+        _, max_val, _, _ = cv2.minMaxLoc(res)
+        if max_val >= 0.85:
+            log_success(f"    Subaru page detected on current screen! (score: {max_val:.3f})")
+            return True
+
     for lb_i in range(1, max_presses + 1):
         _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER, delay=1.0)
         resized_check, _, _, _, _ = capture_screenshot(hwnd)
@@ -171,10 +183,10 @@ def navigate_menu_to_garage(hwnd, gamepad, anchor_templates=None):
             continue
 
         try:
-            # 截取左上角区域（含标签栏 + 菜单项）
+            # 截取标签栏区域（h14-18%, w9-57%）
 
             h, w = resized.shape[:2]
-            roi = resized[0:h//2, 0:w//2]
+            roi = resized[int(h*0.14):int(h*0.18), int(w*0.09):int(w*0.57)]
             gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
             # 二值化处理提高 OCR 识别精度
 
@@ -228,6 +240,30 @@ def navigate_menu_to_garage(hwnd, gamepad, anchor_templates=None):
 
     log_info("  -> [8/9] A × 1 进入车库...")
     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
+
+    # 8.5 等待车库加载（OCR 检测画面顶部 "Car Select" 文字）
+    log_info("  -> [等待] 轮询检测车库界面加载 (OCR: 'Car Select')...")
+    max_poll = 15
+    garage_loaded = False
+    for poll_i in range(1, max_poll + 1):
+        time.sleep(1.0)
+        raw_poll = capture_raw_screenshot(hwnd)
+        if raw_poll is None:
+            continue
+        h_p, w_p = raw_poll.shape[:2]
+        top_roi = raw_poll[int(h_p * 0.09):int(h_p * 0.13), int(w_p * 0.06):int(w_p * 0.16)]
+        gray_top = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
+        _, thresh_top = cv2.threshold(gray_top, 200, 255, cv2.THRESH_BINARY)
+        text_top = pytesseract.image_to_string(thresh_top, config='--psm 7').strip().lower()
+        if "car" in text_top and "selec" in text_top:
+            log_success(f"    ✅ 车库已加载！检测到 'Car Select' (OCR: '{text_top}'，等待 {poll_i} 秒)")
+            garage_loaded = True
+            break
+        if poll_i % 3 == 0:
+            log_info(f"    等待中... #{poll_i}: OCR 读取 = '{text_top}'")
+    if not garage_loaded:
+        log_warning(f"  ⚠️ 等待 {max_poll} 秒仍未检测到 'Car Select'，继续...")
+
     # 9. LB scan until Subaru_page.png detected
     log_info("  -> [9/9] LB scan for Subaru page...")
     _scan_for_subaru_page(hwnd, gamepad, anchor_templates)
@@ -322,7 +358,7 @@ def return_to_garage(hwnd, gamepad, anchor_templates=None):
             continue
         # "Car Select" 在顶栏下方第二行 (约 7%-14% 高度, 左侧 15%)
         h_p, w_p = raw_poll.shape[:2]
-        top_roi = raw_poll[int(h_p * 0.07):int(h_p * 0.14), 0:int(w_p * 0.15)]
+        top_roi = raw_poll[int(h_p * 0.09):int(h_p * 0.13), int(w_p * 0.06):int(w_p * 0.16)]
         gray_top = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
         _, thresh_top = cv2.threshold(gray_top, 200, 255, cv2.THRESH_BINARY)
         text_top = pytesseract.image_to_string(thresh_top, config='--psm 7').strip().lower()

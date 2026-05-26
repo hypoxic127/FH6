@@ -75,8 +75,8 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
             h, w = raw_img.shape[:2]
             ocr_results = []
 
-            # 窄 ROI: 只裁数字区域 (排除左侧标签文字和右侧星形图标)
-            roi = raw_img[int(h * 0.85):int(h * 0.89), int(w * 0.34):int(w * 0.385)]
+            # 窄 ROI: 只裁数字区域 (h85-88%, w36-38%)
+            roi = raw_img[int(h * 0.85):int(h * 0.88), int(w * 0.36):int(w * 0.38)]
             gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
             # 两种阈值 × PSM 7，共 2 次 OCR 投票
@@ -113,14 +113,13 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
         if resized is None:
             return False
         h_img, w_img = resized.shape[:2]
-        # 弹窗标题栏: 画面中部偏下 (25-40% 高度, 25-75% 宽度) 黄绿色横幅
-        roi = resized[int(h_img*0.25):int(h_img*0.40), int(w_img*0.25):int(w_img*0.75)]
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        # 荧光黄绿色: H=25-45, S>150, V>200
-        yellow_mask = cv2.inRange(hsv, np.array([25, 150, 200]), np.array([45, 255, 255]))
-        yellow_px = cv2.countNonZero(yellow_mask)
-        if yellow_px > 2000:
-            log_warning(f"  ⚠️ [{step_name}] 检测到 'Cannot Afford Perk' 弹窗 (黄色: {yellow_px})，按 A 关闭...")
+        # 弹窗区域: h27-83%, w26-82%
+        roi = resized[int(h_img*0.27):int(h_img*0.83), int(w_img*0.26):int(w_img*0.82)]
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+        text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
+        if "cannot" in text and "afford" in text:
+            log_warning(f"  ⚠️ [{step_name}] 检测到 'Cannot Afford Perk' 弹窗 (OCR: '{text[:50]}')，按 A 关闭...")
             press(vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=1.0)
             return True
         return False

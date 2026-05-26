@@ -426,7 +426,12 @@ def find_cursor_position(image):
     2. 使用 inRange 过滤出亮黄绿色像素（H=35-85, S>=80, V>=80）
     3. 使用 findContours 寻找所有绿色轮廓
     4. 过滤面积 < 300 的噪声轮廓
-    5. 选取面积最大的轮廓，计算其外接矩形的中心点
+    5. 按面积降序排列，选取第一个通过车库网格形状校验的轮廓
+
+    形状校验规则（排除误检的标签栏/标题高亮）：
+    - 宽高比不超过 4:1（排除 558×61 这种极扁的标签栏高亮）
+    - 最短边 >= 50 像素（排除过细的 UI 装饰线条）
+    - 中心 Y 坐标 > 150（排除顶部标签栏区域的高亮）
 
     参数:
         image: 1600×900 BGR 格式截图
@@ -454,18 +459,58 @@ def find_cursor_position(image):
         if not valid_contours:
             return None
             
-        # 选取面积最大的轮廓（即最显眼的焦点框）
-        max_contour = max(valid_contours, key=cv2.contourArea)
-        x, y, w, h = cv2.boundingRect(max_contour)
-        cx = x + w // 2  # 外接矩形中心 X
-        cy = y + h // 2  # 外接矩形中心 Y
-        
+        # 按面积降序排列，优先尝试最大的轮廓
+        valid_contours.sort(key=cv2.contourArea, reverse=True)
+
+        for contour in valid_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            cx = x + w // 2
+            cy = y + h // 2
+            area = cv2.contourArea(contour)
+
+            # === 形状校验：排除非车库网格元素（标签栏、菜单标题等） ===
+            aspect_ratio = max(w, h) / max(min(w, h), 1)
+            min_dim = min(w, h)
+
+            if aspect_ratio > 4.0:
+                # 宽高比过大 → 这是标签栏/标题高亮，不是车辆卡片
+                try:
+                    safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过异形轮廓: {w}x{h} (宽高比={aspect_ratio:.1f}>4.0), 面积={area:.0f}")
+                except Exception:
+                    pass
+                continue
+
+            if min_dim < 50:
+                # 最短边太小 → UI 装饰线条或小标签
+                try:
+                    safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过过小轮廓: {w}x{h} (最短边={min_dim}<50), 面积={area:.0f}")
+                except Exception:
+                    pass
+                continue
+
+            if cy <= 150:
+                # 中心在画面顶部 → 标签栏区域，不是车库网格
+                try:
+                    safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过顶部轮廓: (cx={cx}, cy={cy}) 在标签栏区域 (cy<=150), {w}x{h}")
+                except Exception:
+                    pass
+                continue
+
+            # 通过所有校验 → 这是车库网格中的光标
+            try:
+                safe_print(f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 找到高亮焦点位置: (cx={cx}, cy={cy}), 边框尺寸: {w}x{h}, 面积: {area:.0f}")
+            except Exception:
+                pass
+            return cx, cy
+
+        # 所有轮廓都未通过校验 → 输出调试信息
+        top = valid_contours[0]
+        x, y, w, h = cv2.boundingRect(top)
         try:
-            safe_print(f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 找到高亮焦点位置: (cx={cx}, cy={cy}), 边框尺寸: {w}x{h}, 面积: {cv2.contourArea(max_contour)}")
+            safe_print(f"{Fore.RED}[DYNAMIC VISION]{Style.RESET_ALL} 所有轮廓均未通过车库网格校验！最大轮廓: {w}x{h} at ({x + w//2}, {y + h//2}), 面积={cv2.contourArea(top):.0f}")
         except Exception:
             pass
-            
-        return cx, cy
+        return None
     except Exception as e:
         log_error(f"find_cursor_position 执行出错: {e}")
     return None
@@ -667,9 +712,9 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
                     break
         
         # --- 校验 2: HSV 颜色检查（寻找 'NEW' 黄色标签） ---
-        # NEW 标签位于卡片底部右侧 → 只检查底部 45% 的右 2/3（排除左下角的 LEGENDARY 标签）
+        # NEW 标签位于卡片右侧 → 高度 65%-73%、宽度 76%-87%
         roi_h, roi_w = roi.shape[:2]
-        roi_bottom = roi[int(roi_h*0.55):, roi_w//3:]
+        roi_bottom = roi[int(roi_h*0.65):int(roi_h*0.73), int(roi_w*0.76):int(roi_w*0.87)]
         hsv_roi = cv2.cvtColor(roi_bottom, cv2.COLOR_BGR2HSV)
         lower_yellow = HSV_YELLOW_NEW_LOWER
         upper_yellow = HSV_YELLOW_NEW_UPPER
@@ -735,9 +780,9 @@ def check_new_tag_only(image, cursor_x, cursor_y):
         if roi.size == 0:
             return False
         
-        # NEW 标签在卡片底部右侧 → 检查底部 45% 的右 2/3（排除左下 LEGENDARY）
+        # NEW 标签在卡片右侧 → 高度 65%-73%、宽度 76%-87%
         roi_h, roi_w = roi.shape[:2]
-        roi_bottom = roi[int(roi_h*0.55):, roi_w//3:]
+        roi_bottom = roi[int(roi_h*0.65):int(roi_h*0.73), int(roi_w*0.76):int(roi_w*0.87)]
         hsv_roi = cv2.cvtColor(roi_bottom, cv2.COLOR_BGR2HSV)
         lower_yellow = HSV_YELLOW_NEW_LOWER
         upper_yellow = HSV_YELLOW_NEW_UPPER
@@ -788,9 +833,9 @@ def check_is_high_class(image, cursor_x, cursor_y):
             return False
         
         card_h, card_w = card.shape[:2]
-        # PI 徽章: 卡片高度 68%-82%、右 35% 区域（65%+ 宽度）
-        # 只看右侧 PI 徽章 (S2/B)，完全避开左侧 LEGENDARY 金色标签
-        badge = card[int(card_h*0.68):int(card_h*0.82), int(card_w*0.65):]
+        # PI 徽章: 卡片高度 73%-82%、宽度 67%-87% 区域
+        # 只看右侧 PI 徽章 (S2/B)，避开左侧 LEGENDARY 金色标签和右侧越界
+        badge = card[int(card_h*0.73):int(card_h*0.82), int(card_w*0.67):int(card_w*0.87)]
         
         hsv = cv2.cvtColor(badge, cv2.COLOR_BGR2HSV)
         
@@ -886,13 +931,13 @@ def read_text_in_roi(image, x1, y1, x2, y2, whitelist=None):
 # 九、车库网格空位检测
 # ==========================================
 
-def has_cell_below(image, cursor_x, cursor_y, row_spacing=210):
+def has_cell_below(image, cursor_x, cursor_y):
     """
     检测光标下方一行位置是否存在车辆卡片（非空位）。
 
-    车库网格的行间距约为 210 像素（从实际日志观测得出）。
-    通过在下方单元格中心位置采样一个 40×40 的小区域，
-    分析其平均亮度和颜色方差来判断是空位还是有车：
+    使用 CARD_CROP 百分比定位采样区域：
+    高度 87%-153%、宽度 13%-88%（相对于 CARD_CROP 裁剪区域）。
+    该区域覆盖当前卡片下方到下一行卡片的主体部分。
 
     判断规则：
     - 空位背景通常很暗（亮度 < 40）且颜色单调（方差 < 15）
@@ -902,7 +947,6 @@ def has_cell_below(image, cursor_x, cursor_y, row_spacing=210):
     参数:
         image: 1600×900 BGR 格式截图
         cursor_x, cursor_y: 当前光标中心坐标
-        row_spacing: 车库网格行间距（像素），默认 210
 
     返回:
         bool: True = 下方有车辆卡片, False = 下方是空位或超出边界
@@ -911,20 +955,22 @@ def has_cell_below(image, cursor_x, cursor_y, row_spacing=210):
         return False
     try:
         h, w, _ = image.shape
-        # 下方单元格的中心 Y 坐标 = 当前 Y + 行间距
-        below_y = cursor_y + row_spacing
+        crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
+        
+        # CARD_CROP 区域的绝对坐标
+        card_x1 = max(0, cursor_x - crop_w // 2)
+        card_y1 = max(0, cursor_y - crop_h // 2)
+        
+        # 采样区域: h87%-153%, w13%-88%
+        sy1 = max(0, int(card_y1 + crop_h * 0.87))
+        sy2 = min(h, int(card_y1 + crop_h * 1.53))
+        sx1 = max(0, int(card_x1 + crop_w * 0.13))
+        sx2 = min(w, int(card_x1 + crop_w * 0.88))
         
         # 超出画面底部 → 没有下一行
-        if below_y >= h - 30:
-            safe_print(f"{Fore.YELLOW}[GRID]{Style.RESET_ALL} 下方超出画面边界 (below_y={below_y}, h={h})")
+        if sy1 >= h - 30:
+            safe_print(f"{Fore.YELLOW}[GRID]{Style.RESET_ALL} 下方超出画面边界 (sy1={sy1}, h={h})")
             return False
-        
-        # 在下方单元格中心取一个 40×40 的采样区域
-        sample_size = 20  # 半径 20 → 40×40
-        sy1 = max(0, below_y - sample_size)
-        sy2 = min(h, below_y + sample_size)
-        sx1 = max(0, cursor_x - sample_size)
-        sx2 = min(w, cursor_x + sample_size)
         
         sample = image[sy1:sy2, sx1:sx2]
         if sample.size == 0:
@@ -944,3 +990,4 @@ def has_cell_below(image, cursor_x, cursor_y, row_spacing=210):
     except Exception as e:
         log_error(f"has_cell_below 检测出错: {e}")
     return False
+

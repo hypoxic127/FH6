@@ -49,8 +49,8 @@ def _wait_for_cars_text(hwnd, max_wait=8):
         if raw_img is None:
             continue
         h, w = raw_img.shape[:2]
-        # "Cars" 大标题位置 (16-26% 高度, 0-20% 宽度)
-        top_roi = raw_img[int(h * 0.16):int(h * 0.26), 0:int(w * 0.20)]
+        # "Cars" 大标题位置 (9-13% 高度, 6-14% 宽度)
+        top_roi = raw_img[int(h * 0.09):int(h * 0.13), int(w * 0.06):int(w * 0.14)]
         gray = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
         text = pytesseract.image_to_string(thresh, config='--psm 7').strip().lower()
@@ -74,8 +74,8 @@ def _wait_for_anna_link(hwnd, max_wait=15):
         if raw_img is None:
             continue
         h, w = raw_img.shape[:2]
-        # ANNA / LINK 在画面底部 (93-100% 高度, 0-25% 宽度)
-        bottom_roi = raw_img[int(h * 0.93):h, 0:int(w * 0.25)]
+        # ANNA / LINK 在画面底部 (h93-96%, w10-15%)
+        bottom_roi = raw_img[int(h * 0.93):int(h * 0.96), int(w * 0.10):int(w * 0.15)]
         gray = cv2.cvtColor(bottom_roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
         text = pytesseract.image_to_string(thresh, config='--psm 7').strip().lower()
@@ -153,15 +153,17 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="
             cx, cy = cursor_pos
             log_info(f"    [行{row+1}] 光标位置: ({cx}, {cy})")
 
-            # === 空位检测：检查当前单元格是否为空位（深灰背景，无车辆内容） ===
+            # === 空位检测：CARD_CROP h87%-153%, w13%-88% ===
             # 空位特征：亮度 ≤ 50, 方差 ≤ 5（几乎纯色深灰）
             is_empty_slot = False
             try:
-                sample_sz = 40
-                sy1 = max(0, cy - sample_sz)
-                sy2 = min(resized.shape[0], cy + sample_sz)
-                sx1 = max(0, cx - sample_sz)
-                sx2 = min(resized.shape[1], cx + sample_sz)
+                crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
+                card_x1 = max(0, cx - crop_w // 2)
+                card_y1 = max(0, cy - crop_h // 2)
+                sy1 = max(0, int(card_y1 + crop_h * 0.87))
+                sy2 = min(resized.shape[0], int(card_y1 + crop_h * 1.53))
+                sx1 = max(0, int(card_x1 + crop_w * 0.13))
+                sx2 = min(resized.shape[1], int(card_x1 + crop_w * 0.88))
                 cell_sample = resized[sy1:sy2, sx1:sx2]
                 if cell_sample.size > 0:
                     gray_cell = cv2.cvtColor(cell_sample, cv2.COLOR_BGR2GRAY)
@@ -328,7 +330,7 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
             y2 = min(rh, rcy + crop_h)
             card_roi = raw_img[y1:y2, x1:x2]
             ch, cw = card_roi.shape[:2]
-            text_roi = card_roi[int(ch * 0.12):int(ch * 0.25), :]
+            text_roi = card_roi[int(ch * 0.26):int(ch * 0.33), int(cw * 0.34):int(cw * 0.66)]
             gray = cv2.cvtColor(text_roi, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             card_text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
@@ -377,12 +379,16 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
             cx, cy = cursor_pos
             log_info(f"    [行{current_row}] 光标位置: ({cx}, {cy})")
 
-            # 空位检测
+            # 空位检测: CARD_CROP h87%-153%, w13%-88%
             is_empty = False
             try:
-                sz = 40
-                sy1, sy2 = max(0, cy - sz), min(resized.shape[0], cy + sz)
-                sx1, sx2 = max(0, cx - sz), min(resized.shape[1], cx + sz)
+                crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
+                card_x1 = max(0, cx - crop_w // 2)
+                card_y1 = max(0, cy - crop_h // 2)
+                sy1 = max(0, int(card_y1 + crop_h * 0.87))
+                sy2 = min(resized.shape[0], int(card_y1 + crop_h * 1.53))
+                sx1 = max(0, int(card_x1 + crop_w * 0.13))
+                sx2 = min(resized.shape[1], int(card_x1 + crop_w * 0.88))
                 sample = resized[sy1:sy2, sx1:sx2]
                 if sample.size > 0:
                     g = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
@@ -488,13 +494,14 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
         raw_img = capture_raw_screenshot(hwnd)
         if raw_img is not None:
             rh, rw = raw_img.shape[:2]
-            # 标签栏: y14-18%
-            tab_strip = raw_img[int(rh * 0.14):int(rh * 0.18), :]
+            # 标签栏: h14-18%, w9-91%
+            tab_strip = raw_img[int(rh * 0.14):int(rh * 0.18), int(rw * 0.09):int(rw * 0.91)]
             tab_gray = cv2.cvtColor(tab_strip, cv2.COLOR_BGR2GRAY)
-            # 滑动窗口 (8% 宽) 找最暗区域
-            win = int(rw * 0.08)
+            # 滑动窗口 (10% 宽) 找最暗区域
+            tab_w = tab_gray.shape[1]
+            win = int(tab_w * 0.10)
             min_mean, min_x = 999, 0
-            for xi in range(int(rw * 0.05), rw - win, 5):
+            for xi in range(0, tab_w - win, 5):
                 m = float(np.mean(tab_gray[:, xi:xi + win]))
                 if m < min_mean:
                     min_mean = m; min_x = xi
@@ -502,7 +509,7 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
             xs, xe = min_x, min_x + win
             while xs > 0 and float(np.mean(tab_gray[:, max(0, xs-10):xs])) < 120:
                 xs -= 10
-            while xe < rw and float(np.mean(tab_gray[:, xe:min(rw, xe+10)])) < 120:
+            while xe < tab_w and float(np.mean(tab_gray[:, xe:min(tab_w, xe+10)])) < 120:
                 xe += 10
             # OCR 选中标签文字
             sel_roi = tab_strip[:, xs:xe]
@@ -604,12 +611,16 @@ def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"
             cx, cy = cursor_pos
             log_info(f"    [行{row+1}] 光标位置: ({cx}, {cy})")
 
-            # 空位检测
+            # 空位检测: CARD_CROP h87%-153%, w13%-88%
             is_empty = False
             try:
-                sample_sz = 40
-                sy1, sy2 = max(0, cy - sample_sz), min(resized.shape[0], cy + sample_sz)
-                sx1, sx2 = max(0, cx - sample_sz), min(resized.shape[1], cx + sample_sz)
+                crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
+                card_x1 = max(0, cx - crop_w // 2)
+                card_y1 = max(0, cy - crop_h // 2)
+                sy1 = max(0, int(card_y1 + crop_h * 0.87))
+                sy2 = min(resized.shape[0], int(card_y1 + crop_h * 1.53))
+                sx1 = max(0, int(card_x1 + crop_w * 0.13))
+                sx2 = min(resized.shape[1], int(card_x1 + crop_w * 0.88))
                 cell_sample = resized[sy1:sy2, sx1:sx2]
                 if cell_sample.size > 0:
                     gray_cell = cv2.cvtColor(cell_sample, cv2.COLOR_BGR2GRAY)
@@ -642,7 +653,7 @@ def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"
                         y1, y2 = max(0, rcy - crop_h), min(rh, rcy + crop_h)
                         card_roi = raw_img[y1:y2, x1:x2]
                         ch_r, cw_r = card_roi.shape[:2]
-                        text_roi = card_roi[int(ch_r * 0.15):int(ch_r * 0.35), :]
+                        text_roi = card_roi[int(ch_r * 0.26):int(ch_r * 0.33), int(cw_r * 0.34):int(cw_r * 0.66)]
                         gray = cv2.cvtColor(text_roi, cv2.COLOR_BGR2GRAY)
                         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                         card_text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
