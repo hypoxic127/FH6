@@ -73,13 +73,18 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
         raw_img = capture_raw_screenshot(hwnd)
         if raw_img is not None:
             h, w = raw_img.shape[:2]
-             # Available Points 数字精确位置: 86-88% 高度, 33-40% 宽度
-            # 基于 1600x900 实际截图校准 (紫色框 E 验证通过)
-            roi_ap = raw_img[int(h * 0.86):int(h * 0.88), int(w * 0.33):int(w * 0.40)]
-            gray_ap = cv2.cvtColor(roi_ap, cv2.COLOR_BGR2GRAY)
-            # 使用 OTSU 自适应阈值（固定 150 阈值在单位数时会把噪点识别为 0）
-            _, thresh_ap = cv2.threshold(gray_ap, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            upscaled_ap = cv2.resize(thresh_ap, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+            # Available Points 黄色数字精确位置:
+            #   y: 85-89% 高度 (底部 Available Points 行)
+            #   x: 34-38.5% 宽度 (只截数字，排除右侧星形图标)
+            roi_ap = raw_img[int(h * 0.85):int(h * 0.89), int(w * 0.34):int(w * 0.385)]
+            # 使用 HSV 黄色通道提取 — 数字是黄色 (H=20-45)，精确隔离数字像素
+            hsv_ap = cv2.cvtColor(roi_ap, cv2.COLOR_BGR2HSV)
+            yellow_mask = cv2.inRange(hsv_ap, np.array([20, 80, 150]), np.array([45, 255, 255]))
+            # 反色：Tesseract 期望黑字白底
+            inverted_ap = cv2.bitwise_not(yellow_mask)
+            # 加边距 + 4 倍放大，提高小字体识别率
+            padded_ap = cv2.copyMakeBorder(inverted_ap, 20, 20, 20, 20, cv2.BORDER_CONSTANT, value=255)
+            upscaled_ap = cv2.resize(padded_ap, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
             text_ap = pytesseract.image_to_string(upscaled_ap, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
             numbers = re.findall(r'\d+', text_ap)
             if numbers:
