@@ -332,9 +332,10 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
             gray = cv2.cvtColor(text_roi, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             card_text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
-            # 容错匹配: OCR 常把 9→8, 1998→1898 等
-            has_year = any(y in card_text for y in ["1998", "1898", "1988", "199"])
-            has_brand = "subaru" in card_text or "impreza" in card_text
+            # 容错匹配: OCR 常把 1998→w99b/1898/1988 等
+            import re as _re
+            has_year = bool(_re.search(r'.?99[8b6]', card_text)) or any(y in card_text for y in ["1998", "1898", "1988", "199"])
+            has_brand = any(b in card_text for b in ["subaru", "sub", "impreza"])
             if has_year and has_brand:
                 log_success(f"  ✅ 卡片 OCR 确认: 1998 SUBARU ('{card_text}')")
             else:
@@ -645,8 +646,9 @@ def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"
                         gray = cv2.cvtColor(text_roi, cv2.COLOR_BGR2GRAY)
                         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                         card_text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
-                        has_year = any(y in card_text for y in ["1998", "1898", "1988", "199"])
-                        has_brand = "subaru" in card_text or "impreza" in card_text
+                        import re as _re
+                        has_year = bool(_re.search(r'.?99[8b6]', card_text)) or any(y in card_text for y in ["1998", "1898", "1988", "199"])
+                        has_brand = any(b in card_text for b in ["subaru", "sub", "impreza"])
                         if has_year and has_brand:
                             log_success(f"    [行{row+1}] ✅ 卡片 OCR 确认: 1998 SUBARU ('{card_text}')")
                             is_1998_subaru = True

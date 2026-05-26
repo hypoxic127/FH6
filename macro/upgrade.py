@@ -73,9 +73,9 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
         raw_img = capture_raw_screenshot(hwnd)
         if raw_img is not None:
             h, w = raw_img.shape[:2]
-             # Available Points 数字精确位置: 84-88% 高度, 30-45% 宽度
-            # 宽度从 28-50% 收窄到 30-45%，避免右侧背景噪点被识别为 "0"
-            roi_ap = raw_img[int(h * 0.84):int(h * 0.88), int(w * 0.30):int(w * 0.45)]
+             # Available Points 数字精确位置: 86-88% 高度, 33-40% 宽度
+            # 基于 1600x900 实际截图校准 (紫色框 E 验证通过)
+            roi_ap = raw_img[int(h * 0.86):int(h * 0.88), int(w * 0.33):int(w * 0.40)]
             gray_ap = cv2.cvtColor(roi_ap, cv2.COLOR_BGR2GRAY)
             # 使用 OTSU 自适应阈值（固定 150 阈值在单位数时会把噪点识别为 0）
             _, thresh_ap = cv2.threshold(gray_ap, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)

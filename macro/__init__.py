@@ -12,6 +12,8 @@ from colorama import Fore, Style
 from utils import log_info, log_success, log_warning, log_error
 # 显式导出列表（含下划线开头的"内部"函数，因为外部模块直接引用它们）
 __all__ = [
+    # utils re-exports
+    'log_info', 'log_success', 'log_warning', 'log_error',
     # core
     'log_state_header', 'log_step_header',
     'capture_screenshot', 'capture_raw_screenshot',
