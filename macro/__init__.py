@@ -208,7 +208,7 @@ def run_master_bot_loop(initial_state=None):
                         remaining_points = action_upgrade_car_skills(hwnd, gamepad)
 
                         # 触发条件 2: Available Points < 30 → 技能点不足，进入删车
-                        if remaining_points is not None and 0 <= remaining_points < 30:
+                        if remaining_points is not None and remaining_points < 30:
                             log_info(f"  技能点不足 ({remaining_points} < 30)，退出技能树回到车库...")
                             # B × 2 退出技能树
                             log_info("  -> B × 2 退出技能树...")
