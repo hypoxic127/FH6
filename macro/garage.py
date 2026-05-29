@@ -384,7 +384,7 @@ def _scan_and_delete_cars(hwnd, gamepad):
                 elif current_row == 2:
                     current_row = 1
                 elif current_row == 1:
-                    current_col -= 1
+                    current_col = max(1, current_col - 1)
                     current_row = 3
                 log_info(
                     f"  [状态修正] 删除前: (行{old_row}, 列{old_col}) → 光标退到: (行{current_row}, 列{current_col})"

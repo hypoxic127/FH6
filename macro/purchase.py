@@ -114,7 +114,7 @@ def _check_green_at_boxes(hwnd, boxes, pad=40):
 
 def _detect_playing(hwnd):
     """使用 StateDetector 单例检测是否在自由漫游驾驶画面。"""
-    from module_state_detect import get_detector
+    from engine.state_detect import get_detector
 
     resized, _, _, _, _ = capture_screenshot(hwnd)
     if resized is None:
@@ -125,7 +125,7 @@ def _detect_playing(hwnd):
 
 def _detect_campaign(hwnd):
     """使用 StateDetector 单例检测是否在 CAMPAIGN 标签页。"""
-    from module_state_detect import get_detector
+    from engine.state_detect import get_detector
 
     resized, _, _, _, _ = capture_screenshot(hwnd)
     if resized is None:
