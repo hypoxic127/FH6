@@ -37,6 +37,26 @@ def get_mss():
         _mss_instance = mss.MSS()
     return _mss_instance
 
+
+def reset_mss() -> None:
+    """
+    安全重置 MSS 截图单例。
+
+    当 GDI 句柄损坏或长时间运行后截图失败时调用此函数。
+    会先尝试关闭现有实例，然后置空，下次调用 get_mss() 时自动重建。
+
+    此函数是 _mss_instance 的唯一外部操作入口，
+    避免其他模块直接操作私有属性。
+    """
+    global _mss_instance
+    if _mss_instance is not None:
+        try:
+            _mss_instance.close()
+        except Exception:
+            pass  # close 失败也无所谓，置空即可
+        _mss_instance = None
+        log_info("MSS 截图实例已重置")
+
 # 初始化 colorama（autoreset=True 使得每条 print 后自动重置颜色）
 init(autoreset=True)
 

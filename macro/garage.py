@@ -443,34 +443,11 @@ def _scan_and_delete_cars(hwnd, gamepad):
         current_row = 1
         time.sleep(0.3)
 
-        # 品牌标签检测: 按 Right 后动态检测当前选中的标签
-        # 标签位置会随选中品牌滑动，所以用滑动窗口找暗区再 OCR
+        # 品牌标签检测: 按 Right 后动态检测当前选中的标签（使用统一函数）
         raw_img = capture_raw_screenshot(hwnd)
         if raw_img is not None:
-            rh, rw = raw_img.shape[:2]
-            # 标签栏: h14-18%, w9-91%
-            tab_strip = raw_img[int(rh * 0.14):int(rh * 0.18), int(rw * 0.09):int(rw * 0.91)]
-            tab_gray = cv2.cvtColor(tab_strip, cv2.COLOR_BGR2GRAY)
-            # 滑动窗口 (10% 宽) 找最暗区域
-            tab_w = tab_gray.shape[1]
-            win = int(tab_w * 0.10)
-            min_mean, min_x = 999, 0
-            for xi in range(0, tab_w - win, 5):
-                m = float(np.mean(tab_gray[:, xi:xi + win]))
-                if m < min_mean:
-                    min_mean = m; min_x = xi
-            # 向两侧扩展暗区
-            xs, xe = min_x, min_x + win
-            while xs > 0 and float(np.mean(tab_gray[:, max(0, xs-10):xs])) < 120:
-                xs -= 10
-            while xe < tab_w and float(np.mean(tab_gray[:, xe:min(tab_w, xe+10)])) < 120:
-                xe += 10
-            # OCR 选中标签文字
-            sel_roi = tab_strip[:, xs:xe]
-            sel_gray = cv2.cvtColor(sel_roi, cv2.COLOR_BGR2GRAY)
-            _, sel_thresh = cv2.threshold(sel_gray, 150, 255, cv2.THRESH_BINARY)
-            sel_text = pytesseract.image_to_string(sel_thresh, config='--psm 7').strip().lower()
-            if "subaru" not in sel_text:
+            sel_text = module_ocr.detect_selected_brand_tab(raw_img)
+            if sel_text is not None and "subaru" not in sel_text:
                 log_info(f"  🛑 选中标签: '{sel_text}'，已离开 Subaru 区域")
                 return removed_count
 

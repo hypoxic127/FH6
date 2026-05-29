@@ -1024,3 +1024,82 @@ def is_empty_slot(image: np.ndarray, cursor_x: int, cursor_y: int) -> bool:
         log_error(f"is_empty_slot 检测出错: {e}")
     return True
 
+
+# ==========================================
+# 十一、品牌标签栏选中检测（统一版）
+# ==========================================
+
+# 品牌标签栏的默认 ROI（百分比坐标）
+BRAND_TAB_ROI_Y: tuple[float, float] = (0.14, 0.18)
+BRAND_TAB_ROI_X: tuple[float, float] = (0.09, 0.91)
+
+
+def detect_selected_brand_tab(
+    raw_img: np.ndarray,
+    roi_y: tuple[float, float] = BRAND_TAB_ROI_Y,
+    roi_x: tuple[float, float] = BRAND_TAB_ROI_X,
+) -> str | None:
+    """
+    检测品牌标签栏中当前选中（高亮）的标签文字。
+
+    算法原理：
+    游戏 UI 中，选中的品牌标签背景色更暗（深色高亮），未选中的标签背景较亮。
+    通过在标签栏灰度图上滑动窗口（10% 宽度，步长 5px），找到平均亮度最低的区域，
+    然后向两侧扩展（阈值 120）找到完整的暗区范围，最后对该暗区做 OCR 识别文字。
+
+    此函数统一了之前分散在 navigation.py 和 garage.py 中的 2 处重复实现。
+
+    Args:
+        raw_img: 原始分辨率 BGR 截图
+        roi_y: 标签栏垂直范围 (y1%, y2%)，默认 (0.14, 0.18)
+        roi_x: 标签栏水平范围 (x1%, x2%)，默认 (0.09, 0.91)
+
+    Returns:
+        str: 选中标签的 OCR 文字（小写），检测失败返回 None
+    """
+    if raw_img is None or raw_img.size == 0:
+        return None
+
+    rh, rw = raw_img.shape[:2]
+    tab_strip = raw_img[int(rh * roi_y[0]):int(rh * roi_y[1]),
+                        int(rw * roi_x[0]):int(rw * roi_x[1])]
+    if tab_strip.size == 0:
+        return None
+
+    tab_gray = cv2.cvtColor(tab_strip, cv2.COLOR_BGR2GRAY)
+    tab_w = tab_gray.shape[1]
+    win = int(tab_w * 0.10)
+    if win <= 0 or tab_w <= win:
+        return None
+
+    # 滑动窗口找最暗区域
+    min_mean: float = 999.0
+    min_x: int = 0
+    for xi in range(0, tab_w - win, 5):
+        m = float(np.mean(tab_gray[:, xi:xi + win]))
+        if m < min_mean:
+            min_mean = m
+            min_x = xi
+
+    # 向两侧扩展暗区
+    xs, xe = min_x, min_x + win
+    while xs > 0 and float(np.mean(tab_gray[:, max(0, xs - 10):xs])) < 120:
+        xs -= 10
+    while xe < tab_w and float(np.mean(tab_gray[:, xe:min(tab_w, xe + 10)])) < 120:
+        xe += 10
+
+    # OCR 选中标签文字
+    sel_roi = tab_strip[:, xs:xe]
+    if sel_roi.size == 0:
+        return None
+    sel_gray = cv2.cvtColor(sel_roi, cv2.COLOR_BGR2GRAY)
+    _, sel_thresh = cv2.threshold(sel_gray, 150, 255, cv2.THRESH_BINARY)
+
+    try:
+        text = pytesseract.image_to_string(
+            sel_thresh, config='--psm 7').strip().lower()
+        return text if text else None
+    except Exception as e:
+        log_error(f"detect_selected_brand_tab OCR 异常: {e}")
+        return None
+

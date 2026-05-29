@@ -27,15 +27,11 @@ import os
 import json
 import math
 import datetime
-from collections import Counter
 
 import cv2
-import mss
 import numpy as np
 import vgamepad as vg
 import pytesseract
-import ctypes
-from ctypes import wintypes
 from colorama import Fore, Style
 
 import module_ocr
