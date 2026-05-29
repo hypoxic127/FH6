@@ -9,9 +9,9 @@ import sys
 import time
 
 import vgamepad as vg
-import module_ocr
+import engine.ocr as module_ocr
 from colorama import Fore, Style
-from utils import log_info, log_success, log_warning, log_error
+from engine.utils import log_info, log_success, log_warning, log_error
 
 from macro.core import (
     log_state_header,
@@ -223,7 +223,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                     while not verified_999:
                         farm_attempt += 1
                         try:
-                            import module_farm_skills
+                            import farm.skills as module_farm_skills
                             log_info(f"正在启动 module_farm_skills (第 {farm_attempt} 次)...")
                             module_farm_skills.main(gamepad=gamepad)
                             log_success(f"刷图模块已返回！正在验证技能点...")
@@ -242,7 +242,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                         # 技能点只在暂停菜单 CARS 标签页可见，需要先导航过去
                         log_info("  [验证] 正在恢复窗口焦点和截图上下文...")
                         try:
-                            from utils import reset_mss
+                            from engine.utils import reset_mss
                             reset_mss()
                         except Exception:
                             pass
@@ -254,7 +254,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                         detected_points = None
                         cars_found = False
 
-                        from module_state_detect import get_detector
+                        from engine.state_detect import get_detector
                         _detector = get_detector()
 
                         for rb_press in range(8):  # 最多按 8 次 RB 遍历所有标签

@@ -7,12 +7,12 @@ import time
 import cv2
 import numpy as np
 import vgamepad as vg
-from utils import log_info, log_success, log_warning, log_error
-from utils import press_button as _press_button
+from engine.utils import log_info, log_success, log_warning, log_error
+from engine.utils import press_button as _press_button
 from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
 import re
-from module_ocr import DEBUG_WRITE_FILES
+from engine.ocr import DEBUG_WRITE_FILES
 
 def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
     """

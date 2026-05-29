@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 import ctypes
 from colorama import Fore, Style
-from utils import (
+from engine.utils import (
     safe_print, log_info, log_success, log_warning, log_error,
     find_game_window, force_foreground, get_client_rect,
     press_button as _press_button

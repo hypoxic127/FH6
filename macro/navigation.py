@@ -7,11 +7,11 @@ import time
 import cv2
 import numpy as np
 import vgamepad as vg
-from utils import log_info, log_success, log_warning, log_error, safe_print
-from utils import press_button as _press_button
+from engine.utils import log_info, log_success, log_warning, log_error, safe_print
+from engine.utils import press_button as _press_button
 from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
-import module_ocr
+import engine.ocr as module_ocr
 
 
 def _scan_for_subaru_page(hwnd, gamepad, max_presses=15):

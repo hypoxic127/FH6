@@ -18,7 +18,7 @@ import cv2
 import numpy as np
 import base64
 import pytesseract
-from utils import log_info, log_success, log_warning
+from engine.utils import log_info, log_success, log_warning
 
 # ========== 常量：ROI 位置 (百分比) ==========
 

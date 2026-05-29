@@ -29,7 +29,7 @@ import cv2
 import pytesseract
 import numpy as np
 from colorama import Fore, Style
-from utils import safe_print, log_success, log_warning, log_error
+from engine.utils import safe_print, log_success, log_warning, log_error
 
 # ==========================================
 # 全局配置

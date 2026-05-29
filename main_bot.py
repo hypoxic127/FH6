@@ -14,7 +14,11 @@ FORZA HORIZON 6 AUTOBOT — 主程序启动入口 (main_bot.py)
 选择 [1]-[4] 从指定阶段开始运行。
 """
 
-import module_macro
+from macro import (
+    run_master_bot_loop,
+    STATE_FARM_POINTS, STATE_BUY_CARS,
+    STATE_UPGRADE_CARS, STATE_TRASH_CARS,
+)
 
 def show_start_menu():
     """
@@ -54,10 +58,10 @@ def show_start_menu():
     # 建立选项编号到状态常量的映射关系
     state_map = {
         "0": None,  # 默认从 FARM_POINTS 开始
-        "1": module_macro.STATE_FARM_POINTS,
-        "2": module_macro.STATE_BUY_CARS,
-        "3": module_macro.STATE_UPGRADE_CARS,
-        "4": module_macro.STATE_TRASH_CARS,
+        "1": STATE_FARM_POINTS,
+        "2": STATE_BUY_CARS,
+        "3": STATE_UPGRADE_CARS,
+        "4": STATE_TRASH_CARS,
     }
 
     # 循环等待用户输入有效选项
@@ -70,10 +74,10 @@ def show_start_menu():
             # 状态常量到中文名称的映射（用于提示信息）
             names = {
                 None: "自动循环 (从刷点开始)",
-                module_macro.STATE_FARM_POINTS: "刷技能点",
-                module_macro.STATE_BUY_CARS: "买车",
-                module_macro.STATE_UPGRADE_CARS: "加技能点",
-                module_macro.STATE_TRASH_CARS: "卖车",
+                STATE_FARM_POINTS: "刷技能点",
+                STATE_BUY_CARS: "买车",
+                STATE_UPGRADE_CARS: "加技能点",
+                STATE_TRASH_CARS: "卖车",
             }
             print(f"\n  ✅ 已选择: {names[selected]}")
             print()
@@ -87,4 +91,4 @@ if __name__ == "__main__":
     initial_state = show_start_menu()
     # 启动全自动主控状态机无限闭环
     # run_master_bot_loop 会按 刷点→买车→加点→卖车 的顺序无限循环
-    module_macro.run_master_bot_loop(initial_state=initial_state)
+    run_master_bot_loop(initial_state=initial_state)

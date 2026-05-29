@@ -8,15 +8,15 @@ import cv2
 import numpy as np
 import vgamepad as vg
 import pytesseract
-from utils import log_info, log_success, log_warning, log_error, safe_print, find_game_window
-from utils import press_button as _press_button
+from engine.utils import log_info, log_success, log_warning, log_error, safe_print, find_game_window
+from engine.utils import press_button as _press_button
 from macro.core import (
     capture_screenshot, capture_raw_screenshot,
     log_step_header, log_state_header,
     CARS_TO_PROCESS,
 )
-import module_ocr
-from module_ocr import DEBUG_WRITE_FILES
+import engine.ocr as module_ocr
+from engine.ocr import DEBUG_WRITE_FILES
 
 
 # ==========================================

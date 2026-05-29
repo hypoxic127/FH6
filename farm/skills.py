@@ -34,9 +34,9 @@ import vgamepad as vg
 import pytesseract
 from colorama import Fore, Style
 
-import module_ocr
-from module_state_detect import get_detector
-from utils import (
+import engine.ocr as module_ocr
+from engine.state_detect import get_detector
+from engine.utils import (
     log_info, log_success, log_warning, log_error,
     find_game_window, force_foreground, get_client_rect,
     press_button, get_mss
