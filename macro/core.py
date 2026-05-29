@@ -115,7 +115,7 @@ def capture_screenshot(hwnd):
         screenshot = sct.grab(monitor)
         img = np.array(screenshot)
         img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-        resized = cv2.resize(img, (1600, 900), interpolation=cv2.INTER_AREA)
+        resized = cv2.resize(img, (1600, 900), interpolation=cv2.INTER_LINEAR)
         return resized, cx, cy, cw, ch
 
     except Exception as e:
