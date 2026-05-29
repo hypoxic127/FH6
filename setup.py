@@ -11,11 +11,11 @@ FH6 AutoBot — 一键环境安装脚本
     python setup.py
 """
 
+import os
+import shutil
 import subprocess
 import sys
-import os
 import zipfile
-import shutil
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOOLS_DIR = os.path.join(SCRIPT_DIR, "tools")

@@ -11,13 +11,13 @@ tests/test_core.py — macro/core.py 常量与配置测试
 import pytest
 
 from macro.core import (
+    CARS_TO_PROCESS,
     MAX_SKILL_POINTS,
     POINTS_PER_CAR,
-    CARS_TO_PROCESS,
     STATE_BUY_CARS,
-    STATE_UPGRADE_CARS,
-    STATE_TRASH_CARS,
     STATE_FARM_POINTS,
+    STATE_TRASH_CARS,
+    STATE_UPGRADE_CARS,
     log_state_header,
     log_step_header,
 )

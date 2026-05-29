@@ -3,16 +3,19 @@
 macro/upgrade.py — 车辆加点宏
 """
 
+import re
 import time
+
 import cv2
 import numpy as np
-import vgamepad as vg
-from engine.utils import log_info, log_success, log_warning, log_error
-from engine.utils import press_button as _press_button
-from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
-import re
+import vgamepad as vg
+
 from engine.ocr import DEBUG_WRITE_FILES
+from engine.utils import log_error, log_info, log_success, log_warning
+from engine.utils import press_button as _press_button
+from macro.core import capture_raw_screenshot, capture_screenshot
+
 
 def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
     """

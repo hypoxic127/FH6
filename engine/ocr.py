@@ -25,11 +25,13 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 
 import os
 import sys
+
 import cv2
-import pytesseract
 import numpy as np
+import pytesseract
 from colorama import Fore, Style
-from engine.utils import safe_print, log_success, log_warning, log_error
+
+from engine.utils import log_error, log_success, log_warning, safe_print
 
 # ==========================================
 # 全局配置
@@ -190,7 +192,7 @@ def read_skill_points(img):
                 val = int(text)
                 results.append(val)
                 safe_print(f"{Fore.CYAN}[OCR PSM{psm}]{Style.RESET_ALL} 识别结果: {val}")
-        except Exception as e:
+        except Exception:
             pass
     
     # ===== 投票机制：从多个 PSM 的结果中选取最可信的值 =====
@@ -706,7 +708,7 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
             return True
         else:
             # 打印失败原因（方便调试）
-            log_warning(f"[锁定失败] 三重校验未全部通过:")
+            log_warning("[锁定失败] 三重校验未全部通过:")
             if not has_keyword:
                 log_warning(f"  ❌ 原因1：关键词不足 (命中 {len(matched_kws)}/3 {matched_kws}, 需≥2, OCR: '{text.replace(chr(10), ' ')}')")
             else:

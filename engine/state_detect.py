@@ -12,12 +12,14 @@ module_state_detect.py — 无模板状态检测引擎
     state = detector.detect(resized_frame)
 """
 
-import os
+import base64
 import json
+import os
+
 import cv2
 import numpy as np
-import base64
 import pytesseract
+
 from engine.utils import log_info, log_success, log_warning
 
 # ========== 常量：ROI 位置 (百分比) ==========
@@ -101,7 +103,7 @@ class StateDetector:
         """从 JSON 文件加载校准参考数据。"""
         if not os.path.exists(self.ref_path):
             log_warning(f"[StateDetector] 参考数据文件不存在: {self.ref_path}")
-            log_warning(f"[StateDetector] 请先运行 tool_calibrate_states.py 采集校准数据")
+            log_warning("[StateDetector] 请先运行 tool_calibrate_states.py 采集校准数据")
             return
 
         try:

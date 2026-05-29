@@ -15,10 +15,13 @@ FORZA HORIZON 6 AUTOBOT — 主程序启动入口 (main_bot.py)
 """
 
 from macro import (
+    STATE_BUY_CARS,
+    STATE_FARM_POINTS,
+    STATE_TRASH_CARS,
+    STATE_UPGRADE_CARS,
     run_master_bot_loop,
-    STATE_FARM_POINTS, STATE_BUY_CARS,
-    STATE_UPGRADE_CARS, STATE_TRASH_CARS,
 )
+
 
 def show_start_menu():
     """

@@ -9,38 +9,42 @@ import sys
 import time
 
 import vgamepad as vg
-import engine.ocr as module_ocr
 from colorama import Fore, Style
-from engine.utils import log_info, log_success, log_warning, log_error
 
+import engine.ocr as module_ocr
+from engine.utils import log_error, log_info, log_success, log_warning
 from macro.core import (
-    log_state_header,
-    capture_screenshot,
-    find_game_window, force_foreground,
+    CARS_TO_PROCESS,
+    MAX_SKILL_POINTS,
+    POINTS_PER_CAR,
+    STATE_BUY_CARS,
+    STATE_FARM_POINTS,
+    STATE_TRASH_CARS,
+    STATE_UPGRADE_CARS,
     _press_button,
-    MAX_SKILL_POINTS, POINTS_PER_CAR, CARS_TO_PROCESS,
-    STATE_BUY_CARS, STATE_UPGRADE_CARS, STATE_TRASH_CARS, STATE_FARM_POINTS,
+    capture_screenshot,
+    find_game_window,
+    force_foreground,
+    log_state_header,
 )
-
+from macro.garage import (
+    _scan_and_delete_cars,
+    _wait_for_anna_link,
+    _wait_for_cars_text,
+    _wait_for_designs_and_paints,
+    navigate_to_car_in_garage,
+    navigate_to_main_car,
+    reset_upgrade_position,
+)
 from macro.navigation import (
     _scan_for_subaru_page,
     navigate_menu_to_garage,
     return_to_garage,
 )
-
 from macro.purchase import (
-    navigate_to_impreza_purchase_screen,
     action_buy_single_car,
+    navigate_to_impreza_purchase_screen,
 )
-
-from macro.garage import (
-    _wait_for_designs_and_paints, _wait_for_cars_text, _wait_for_anna_link,
-    navigate_to_car_in_garage,
-    navigate_to_main_car,
-    _scan_and_delete_cars,
-    reset_upgrade_position,
-)
-
 from macro.upgrade import action_upgrade_car_skills
 
 
@@ -226,7 +230,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                             import farm.skills as module_farm_skills
                             log_info(f"正在启动 module_farm_skills (第 {farm_attempt} 次)...")
                             module_farm_skills.main(gamepad=gamepad)
-                            log_success(f"刷图模块已返回！正在验证技能点...")
+                            log_success("刷图模块已返回！正在验证技能点...")
 
                         except Exception as e:
                             log_error(f"模块运行中出现错误: {e}")

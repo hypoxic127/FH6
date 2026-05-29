@@ -13,13 +13,12 @@ import os
 import pytest
 
 from farm.skills import (
-    get_matches_needed,
-    save_race_state,
-    load_race_state,
-    clear_race_state,
     RACE_STATE_FILE,
+    clear_race_state,
+    get_matches_needed,
+    load_race_state,
+    save_race_state,
 )
-
 
 # ==========================================
 # get_matches_needed()

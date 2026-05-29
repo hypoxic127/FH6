@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """conftest.py — 全局测试 fixtures 与配置"""
 
-import sys
 import os
+import sys
 
 import pytest
 

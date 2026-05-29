@@ -4,14 +4,16 @@ macro/navigation.py — 菜单导航、视觉刹车、返回车库
 """
 
 import time
+
 import cv2
 import numpy as np
-import vgamepad as vg
-from engine.utils import log_info, log_success, log_warning, log_error, safe_print
-from engine.utils import press_button as _press_button
-from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
+import vgamepad as vg
+
 import engine.ocr as module_ocr
+from engine.utils import log_error, log_info, log_success, log_warning, safe_print
+from engine.utils import press_button as _press_button
+from macro.core import capture_raw_screenshot, capture_screenshot
 
 
 def _scan_for_subaru_page(hwnd, gamepad, max_presses=15):
@@ -154,7 +156,7 @@ def safe_exit_to_menu(hwnd, gamepad):
             except Exception as e:
                 log_warning(f"  [视觉刹车] OCR 异常: {e}")
 
-        log_warning(f"[视觉刹车] 未看到菜单标签栏，按下 B 键...")
+        log_warning("[视觉刹车] 未看到菜单标签栏，按下 B 键...")
         _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_B, delay=0)
         time.sleep(2.0)
 

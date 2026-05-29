@@ -4,14 +4,17 @@ macro/garage.py — 车库网格操作（选车、删车、主力车导航）
 """
 
 import time
+
 import cv2
 import numpy as np
-import vgamepad as vg
-from engine.utils import log_info, log_success, log_warning, log_error
-from engine.utils import press_button as _press_button
-from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
+import vgamepad as vg
+
 import engine.ocr as module_ocr
+from engine.utils import log_error, log_info, log_success, log_warning
+from engine.utils import press_button as _press_button
+from macro.core import capture_raw_screenshot, capture_screenshot
+
 
 def _wait_for_designs_and_paints(hwnd, max_wait=8):
     """
@@ -107,12 +110,10 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
     if start_col > 1 or start_row > 1:
         log_info(f"  从第 {start_col} 列第 {start_row} 行继续扫描")
     else:
-        log_info(f"  遍历模式: 打字机走位（逐列从上到下，复位后右移）")
+        log_info("  遍历模式: 打字机走位（逐列从上到下，复位后右移）")
 
-    TOLERANCE = 150
     MAX_COLUMNS = 200               # 安全上限
     total_excluded = 0              # 累计跳过的车（仅统计）
-    found_first_target = False      # 是否已找到第一辆目标车
     
     # --- Impreza 区域检测 ---
     # 车库按品牌排列，Impreza 22B 聚在一起。进入区域后离开即可停止。
@@ -128,12 +129,11 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
         time.sleep(0.3)
 
     for col in range(start_col, start_col + MAX_COLUMNS):
-        log_info(f"")
+        log_info("")
         log_info(f"{'='*40}")
         log_info(f"  📋 正在扫描第 {col} 列...")
         log_info(f"{'='*40}")
 
-        col_has_target = False
         rows_descended = 0  # 本列向下移动了几行（用于精确复位）
         # 首列从 start_row 开始，后续列从第 1 行开始
         first_row = (start_row - 1) if col == start_col else 0
@@ -180,10 +180,8 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
 
             # 直接使用 OCR 校验函数判断当前单元格
             if verify_fn(resized, cx, cy):
-                found_first_target = True
                 in_impreza_zone = True
                 consecutive_non_impreza = 0
-                col_has_target = True
                 log_success(f"    [行{row+1}] ✅ {label} 校验通过！按 A 进入详情... (列{col}, 行{row+1})")
                 _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
                 return True, col, row + 1
@@ -520,7 +518,7 @@ def navigate_to_main_car(hwnd, gamepad):
     rows_descended = 0
 
     for col in range(1, MAX_COLUMNS + 1):
-        log_info(f"")
+        log_info("")
         log_info(f"{'='*40}")
         log_info(f"  📋 正在扫描第 {col} 列...")
         log_info(f"{'='*40}")

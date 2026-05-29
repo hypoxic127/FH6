@@ -9,12 +9,13 @@ FH6_AutoBot 公共工具模块 (utils.py)
   - 虚拟手柄按键封装（按下→释放→延迟）
   - 屏幕截图单例（MSS，避免多个模块各自创建 GDI 句柄导致资源泄露）
 """
-import sys
-import os
-import time
 import ctypes
+import os
+import sys
+import time
 from ctypes import wintypes
-from colorama import init, Fore, Style
+
+from colorama import Fore, Style, init
 
 # ==========================================
 # MSS 截图单例

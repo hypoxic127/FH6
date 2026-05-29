@@ -11,25 +11,31 @@ tests/test_ocr.py — engine/ocr.py 单元测试
   - is_empty_slot() 空位检测（合成图像）
 """
 
-import numpy as np
 import cv2
+import numpy as np
 import pytest
 
 from engine.ocr import (
+    BRAND_TAB_ROI_X,
+    BRAND_TAB_ROI_Y,
+    CARD_CROP_H,
+    CARD_CROP_W,
+    EMPTY_SLOT_BRIGHTNESS_THRESHOLD,
+    EMPTY_SLOT_VARIANCE_THRESHOLD,
     # 常量
-    HSV_GREEN_BORDER_LOWER, HSV_GREEN_BORDER_UPPER,
-    HSV_GREEN_CURSOR_LOWER, HSV_GREEN_CURSOR_UPPER,
-    HSV_YELLOW_NEW_LOWER, HSV_YELLOW_NEW_UPPER,
-    CARD_CROP_W, CARD_CROP_H,
-    IMPREZA_22B_KEYWORDS, IMPREZA_22B_MIN_MATCH,
-    EMPTY_SLOT_BRIGHTNESS_THRESHOLD, EMPTY_SLOT_VARIANCE_THRESHOLD,
-    BRAND_TAB_ROI_Y, BRAND_TAB_ROI_X,
+    HSV_GREEN_BORDER_LOWER,
+    HSV_GREEN_BORDER_UPPER,
+    HSV_GREEN_CURSOR_LOWER,
+    HSV_GREEN_CURSOR_UPPER,
+    HSV_YELLOW_NEW_LOWER,
+    HSV_YELLOW_NEW_UPPER,
+    IMPREZA_22B_KEYWORDS,
+    IMPREZA_22B_MIN_MATCH,
+    detect_selected_brand_tab,
     # 函数
     has_green_selection_border,
-    detect_selected_brand_tab,
     is_empty_slot,
 )
-
 
 # ==========================================
 # HSV 常量合法性
@@ -105,7 +111,7 @@ class TestGreenSelectionBorder:
     def test_returns_false_for_black_image(self) -> None:
         """纯黑图 → 无绿色边框。"""
         img = np.zeros((200, 280, 3), dtype=np.uint8)
-        assert has_green_selection_border(img) == False
+        assert not has_green_selection_border(img)
 
     def test_returns_true_for_green_border(self) -> None:
         """四边绘制绿色矩形 → 检测到边框。"""
@@ -116,7 +122,7 @@ class TestGreenSelectionBorder:
         )[0, 0]
         thickness = 15
         cv2.rectangle(img, (0, 0), (279, 199), green_bgr.tolist(), thickness)
-        assert has_green_selection_border(img) == True
+        assert has_green_selection_border(img)
 
 
 # ==========================================
@@ -171,13 +177,13 @@ class TestIsEmptySlot:
         """纯黑图 → 空位。"""
         # is_empty_slot 需要 1600x900 场景图 + 光标坐标
         img = np.zeros((900, 1600, 3), dtype=np.uint8)
-        assert is_empty_slot(img, 800, 450) == True
+        assert is_empty_slot(img, 800, 450)
 
     def test_bright_image_is_not_empty(self) -> None:
         """亮色图 → 不是空位。"""
         img = np.full((900, 1600, 3), 180, dtype=np.uint8)
-        assert is_empty_slot(img, 800, 450) == False
+        assert not is_empty_slot(img, 800, 450)
 
     def test_none_returns_true(self) -> None:
         """None 输入应安全返回 True（保守策略）。"""
-        assert is_empty_slot(None, 0, 0) == True
+        assert is_empty_slot(None, 0, 0)

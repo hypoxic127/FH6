@@ -4,16 +4,24 @@ macro/core.py — 基础设施（截图、日志、配置常量）
 所有其他 macro 子模块都依赖此模块。
 """
 
+import ctypes
 import time
+
 import cv2
 import numpy as np
-import ctypes
 from colorama import Fore, Style
+
 from engine.utils import (
-    safe_print, log_info, log_success, log_warning, log_error,
-    find_game_window, force_foreground, get_client_rect,
-    press_button as _press_button
+    find_game_window,
+    force_foreground,
+    get_client_rect,
+    log_error,
+    log_info,
+    log_success,
+    log_warning,
+    safe_print,
 )
+from engine.utils import press_button as _press_button
 
 # ==========================================
 # 全局配置参数
@@ -109,8 +117,8 @@ def capture_screenshot(hwnd):
         log_error(f"截图捕获失败: {e}")
         # GDI 句柄可能已损坏，重置 MSS 单例
         try:
-            from utils import get_mss as _reset_check
             import utils
+            from utils import get_mss as _reset_check
             if hasattr(utils, '_mss_instance') and utils._mss_instance is not None:
                 log_warning("正在重置 MSS 截图上下文...")
                 try:

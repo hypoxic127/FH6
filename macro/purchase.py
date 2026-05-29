@@ -4,20 +4,23 @@ macro/purchase.py — 5步购买导航 + 购买宏（纯 OCR 版）
 """
 
 import time
+
 import cv2
 import numpy as np
-import vgamepad as vg
 import pytesseract
-from engine.utils import log_info, log_success, log_warning, log_error, safe_print, find_game_window
-from engine.utils import press_button as _press_button
-from macro.core import (
-    capture_screenshot, capture_raw_screenshot,
-    log_step_header, log_state_header,
-    CARS_TO_PROCESS,
-)
+import vgamepad as vg
+
 import engine.ocr as module_ocr
 from engine.ocr import DEBUG_WRITE_FILES
-
+from engine.utils import find_game_window, log_error, log_info, log_success, log_warning, safe_print
+from engine.utils import press_button as _press_button
+from macro.core import (
+    CARS_TO_PROCESS,
+    capture_raw_screenshot,
+    capture_screenshot,
+    log_state_header,
+    log_step_header,
+)
 
 # ==========================================
 # OCR 辅助函数
@@ -181,7 +184,7 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad):
             # OCR 扫描 "Collection Journal" + 绿框检测
             matched, text, boxes = _ocr_scan_keywords(hwnd, ["collection", "journal"], roi_pct=(0.30, 0.85, 0.05, 0.95))
             if matched and boxes:
-                log_info(f"OCR 检测到 Collection Journal 文字，检查绿框选中...")
+                log_info("OCR 检测到 Collection Journal 文字，检查绿框选中...")
                 if _check_green_at_boxes(hwnd, boxes, pad=50):
                     log_success("Collection Journal 绿色选中边框校验通过！按 A 进入...")
                     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=3.0)
@@ -279,10 +282,10 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad):
         # 每 3 次失败后尝试额外 D-pad 移动
         if cc_attempt % 3 == 0:
             if cc_attempt <= 9:
-                log_info(f"  -> 尝试额外按 D-pad Down 移动焦点...")
+                log_info("  -> 尝试额外按 D-pad Down 移动焦点...")
                 _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.8)
             else:
-                log_info(f"  -> 尝试按 D-pad Up 回退焦点...")
+                log_info("  -> 尝试按 D-pad Up 回退焦点...")
                 _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.8)
 
     if step3_success:

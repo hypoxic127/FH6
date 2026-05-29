@@ -22,26 +22,31 @@ FH6_AutoBot EventLab 自动跑图模块 (module_farm_skills.py)
   每个状态处理逻辑独立为 <40 行的方法，提高可读性与可维护性。
 """
 
-import time
-import os
+import datetime
 import json
 import math
-import datetime
+import os
+import time
 
 import cv2
 import numpy as np
-import vgamepad as vg
 import pytesseract
+import vgamepad as vg
 from colorama import Fore, Style
 
 import engine.ocr as module_ocr
 from engine.state_detect import get_detector
 from engine.utils import (
-    log_info, log_success, log_warning, log_error,
-    find_game_window, force_foreground, get_client_rect,
-    press_button, get_mss
+    find_game_window,
+    force_foreground,
+    get_client_rect,
+    get_mss,
+    log_error,
+    log_info,
+    log_success,
+    log_warning,
+    press_button,
 )
-
 
 # ==========================================
 # 辅助函数（无状态）
@@ -196,12 +201,12 @@ class FarmStateMachine:
             self.matches_needed, self.matches_completed, last_updated = saved_state
             self.points_scanned = True
             print(f"\n{Fore.CYAN}{Style.BRIGHT}==========================================")
-            print(f"   [RESUMING FROM SAVED STATE]")
+            print("   [RESUMING FROM SAVED STATE]")
             print(f"   Matches Remaining: {self.matches_needed}")
             print(f"   Matches Already Completed: {self.matches_completed}")
             print(f"   Last Updated: {last_updated}")
-            print(f"   (Skipping OCR skill points scan)")
-            print(f"==========================================\n")
+            print("   (Skipping OCR skill points scan)")
+            print("==========================================\n")
 
     def _update_client_rect(self) -> None:
         """每 2 秒刷新一次窗口客户区坐标（避免每帧调用）。"""
@@ -296,11 +301,11 @@ class FarmStateMachine:
         archive_match_to_file(self.matches_completed, remaining_matches)
 
         print(f"\n{Fore.GREEN}{Style.BRIGHT}==========================================")
-        print(f"   [MATCH PLAYED & SETTLED SUCCESSFULLY]  ")
+        print("   [MATCH PLAYED & SETTLED SUCCESSFULLY]  ")
         print(f"   Match Number Completed: {self.matches_completed}")
         print(f"   Original Matches Needed: {self.matches_needed}")
         print(f"   Remaining Matches Needed: {remaining_matches}")
-        print(f"==========================================\n")
+        print("==========================================\n")
 
         self.matches_needed = remaining_matches
         save_race_state(self.matches_needed, self.matches_completed)
@@ -357,7 +362,7 @@ class FarmStateMachine:
                       f"   [ALL TARGET MATCHES SUCCESSFULLY COMPLETED] ")
                 print(f"{Fore.GREEN}{Style.BRIGHT}"
                       f"   Skill point goal has been successfully reached! ")
-                print(f"   Returned to Menu successfully. ")
+                print("   Returned to Menu successfully. ")
                 print(f"{Fore.GREEN}{Style.BRIGHT}"
                       f"==========================================\n")
                 self.should_exit = True
@@ -396,14 +401,14 @@ class FarmStateMachine:
 
                 print(f"\n{Fore.GREEN}{Style.BRIGHT}"
                       f"==========================================")
-                print(f"   [MATCH PLAYED & SETTLED SUCCESSFULLY]  ")
+                print("   [MATCH PLAYED & SETTLED SUCCESSFULLY]  ")
                 print(f"   Match Number Completed: "
                       f"{self.matches_completed}")
                 print(f"   Original Matches Needed: "
                       f"{self.matches_needed}")
                 print(f"   Remaining Matches Needed: "
                       f"{remaining_matches}")
-                print(f"==========================================\n")
+                print("==========================================\n")
 
                 self.matches_needed = remaining_matches
                 save_race_state(self.matches_needed,
@@ -488,11 +493,11 @@ class FarmStateMachine:
             self.matches_needed = get_matches_needed(detected_points)
             print(f"\n{Fore.GREEN}{Style.BRIGHT}"
                   f"==========================================")
-            print(f"   [SKILL POINTS SCAN SUCCESS on CARS TAB] ")
+            print("   [SKILL POINTS SCAN SUCCESS on CARS TAB] ")
             print(f"   Current Points: {detected_points} / 999")
             print(f"   Matches Needed: {self.matches_needed} "
                   f"(10 pts/match)")
-            print(f"==========================================\n")
+            print("==========================================\n")
             self.last_points = detected_points
             self.points_scanned = True
             save_race_state(self.matches_needed, self.matches_completed)
@@ -500,10 +505,10 @@ class FarmStateMachine:
             if self.matches_needed <= 0:
                 print(f"\n{Fore.GREEN}{Style.BRIGHT}"
                       f"==========================================")
-                print(f"   [GOAL ALREADY REACHED] ")
+                print("   [GOAL ALREADY REACHED] ")
                 print(f"   Current points {detected_points} >= 999. "
                       f"No matches needed!")
-                print(f"==========================================\n")
+                print("==========================================\n")
                 self.should_exit = True
                 return
 
@@ -580,9 +585,9 @@ class FarmStateMachine:
         """比赛类型选择：确保 Solo 选中并启动。"""
         print(f"\n{Fore.GREEN}{Style.BRIGHT}"
               f"==========================================")
-        print(f"   [STATE: RACE_READY] Arrived at Choose Race Type!")
-        print(f"   Ensuring SOLO is selected and launching...")
-        print(f"==========================================\n")
+        print("   [STATE: RACE_READY] Arrived at Choose Race Type!")
+        print("   Ensuring SOLO is selected and launching...")
+        print("==========================================\n")
 
         for button in [vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP,
                        vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT]:
@@ -599,8 +604,8 @@ class FarmStateMachine:
         """车辆选择：直接确认当前车辆。"""
         print(f"\n{Fore.GREEN}{Style.BRIGHT}"
               f"==========================================")
-        print(f"   [STATE: CAR_SELECT] Confirming current car (A)...")
-        print(f"==========================================\n")
+        print("   [STATE: CAR_SELECT] Confirming current car (A)...")
+        print("==========================================\n")
         press_button(self.gamepad,
                      vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=3.0)
 
@@ -608,9 +613,9 @@ class FarmStateMachine:
         """赛事准备界面：按 A 开始比赛，切换到 racing 模式。"""
         print(f"\n{Fore.GREEN}{Style.BRIGHT}"
               f"==========================================")
-        print(f"   [STATE: PRE_RACE] Arrived at Pre-Race Lobby!")
-        print(f"   Launching Start Race Event...")
-        print(f"==========================================\n")
+        print("   [STATE: PRE_RACE] Arrived at Pre-Race Lobby!")
+        print("   Launching Start Race Event...")
+        print("==========================================\n")
 
         press_button(self.gamepad,
                      vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=0)
@@ -648,11 +653,11 @@ class FarmStateMachine:
                 press_button(self.gamepad,
                              vg.XUSB_BUTTON.XUSB_GAMEPAD_B, delay=1.0)
             if self.unknown_consecutive_count % 30 == 0:
-                log_warning(f"  [AUTO-RECOVERY] 尝试按 Start 打开菜单...")
+                log_warning("  [AUTO-RECOVERY] 尝试按 Start 打开菜单...")
                 press_button(self.gamepad,
                              vg.XUSB_BUTTON.XUSB_GAMEPAD_START, delay=1.0)
             if self.unknown_consecutive_count % 60 == 0:
-                log_warning(f"  [AUTO-RECOVERY] 尝试重新获取窗口焦点...")
+                log_warning("  [AUTO-RECOVERY] 尝试重新获取窗口焦点...")
                 recovery_hwnd = find_game_window()
                 if recovery_hwnd:
                     force_foreground(recovery_hwnd)
@@ -740,8 +745,8 @@ def main(gamepad: vg.VX360Gamepad | None = None) -> None:
     module_ocr.setup_tesseract()
 
     print(f"\n{Fore.YELLOW}==================================================")
-    print(f"   OCR-ONLY SKILL POINTS SCANNER")
-    print(f"   (Must visit CARS menu tab to scan points initially)")
+    print("   OCR-ONLY SKILL POINTS SCANNER")
+    print("   (Must visit CARS menu tab to scan points initially)")
     print(f"=================================================={Style.RESET_ALL}")
 
     # 2. Initialize State Detector (单例)
