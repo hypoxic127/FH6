@@ -1,8 +1,7 @@
-[tool.ruff]
 target-version = "py310"
 line-length = 120
 
-[tool.ruff.lint]
+[lint]
 # Enable pyflakes (F), pycodestyle errors (E), isort (I)
 select = ["F", "E", "I"]
 # Ignore rules that conflict with existing codebase patterns
@@ -11,14 +10,14 @@ ignore = [
     "F403",   # star imports — used in backward-compat wrappers
     "F405",   # may be undefined from star import
     "E501",   # line too long — many OCR debug strings exceed 120
-    "E722",   # bare except — gradually being addressed (28 remaining)
+    "E722",   # bare except — gradually being addressed
     "E741",   # ambiguous variable name (l, O, I) — OCR code uses these
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"macro/__init__.py" = ["F401", "F403"]  # re-export hub
-"tests/*" = ["E402"]                     # sys.path manipulation in conftest
+[lint.per-file-ignores]
+"macro/__init__.py" = ["F401", "F403"]
+"tests/*" = ["E402"]
 
-[tool.ruff.format]
+[format]
 quote-style = "double"
 indent-style = "space"
