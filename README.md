@@ -1,5 +1,9 @@
 # 🏎️ FH6 AutoBot — Forza Horizon 6 全自动刷点挂机工具
 
+[![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-personal%20use-lightgrey)
+
 > 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 与 **虚拟手柄 (ViGEmBus)** 的
 > Forza Horizon 6 全自动技能点无限循环系统。
 
@@ -23,19 +27,37 @@
 
 ```
 FH6_AutoBot/
-├── main_bot.py               # 🚀 主程序入口（交互式菜单选择起始阶段）
-├── module_macro.py            # 🔌 向后兼容包装（重新导出 macro/ 下所有函数）
-├── macro/                     # 🎮 核心宏引擎包（从 module_macro.py 拆分）
-│   ├── __init__.py            #    统一导出 + 主状态机循环 (run_master_bot_loop)
+├── main_bot.py                # 🚀 主程序入口（交互式菜单选择起始阶段）
+│
+├── engine/                    # 🧠 感知引擎层
+│   ├── ocr.py                 #    计算机视觉（OCR / 模板匹配 / 颜色检测）
+│   ├── state_detect.py        #    游戏状态检测器（颜色直方图 + OCR 混合）
+│   └── utils.py               #    公共工具（日志 / 窗口操作 / 手柄封装 / MSS 截图）
+│
+├── macro/                     # 🎮 宏操作层
+│   ├── __init__.py            #    统一导出（所有公开 API 的入口）
 │   ├── core.py                #    基础设施：截图、日志、配置常量
+│   ├── master_loop.py         #    主控状态机循环 (run_master_bot_loop)
 │   ├── navigation.py          #    菜单导航、视觉刹车、返回车库
 │   ├── purchase.py            #    5步 Impreza 购买导航 + 购买宏
 │   ├── garage.py              #    车库网格操作：选车、删车、主力车导航
 │   └── upgrade.py             #    车辆加点宏（含 Cannot Afford 弹窗检测）
-├── module_farm_skills.py      # 🏁 EventLab 自动跑图模块（视觉状态机 + RT 加速）
-├── module_ocr.py              # 👁️ 计算机视觉模块（OCR / 模板匹配 / 颜色检测）
-├── utils.py                   # 🔧 公共工具（日志 / 窗口操作 / 手柄封装 / MSS 截图）
-├── templates/                 # 📸 视觉模板图片（菜单标签 / 导航锚点 / 目标车辆）
+│
+├── farm/                      # 🏁 EventLab 刷图
+│   └── skills.py              #    视觉状态机（自动跑图 + RT 加速 + 终点检测）
+│
+├── tests/                     # 🧪 单元测试（65 用例）
+│   ├── conftest.py            #    Fixtures + 跨平台 mock（Linux CI 兼容）
+│   ├── test_ocr.py            #    HSV 常量 / 绿框检测 / 关键词匹配
+│   ├── test_farm_skills.py    #    场次计算 / 断点续跑持久化
+│   ├── test_purchase.py       #    模糊词匹配（编辑距离 / OCR 容错）
+│   ├── test_core.py           #    状态常量 / 公式校验
+│   └── test_utils.py          #    日志函数 / MSS 单例
+│
+├── .github/workflows/ci.yml   # ⚡ GitHub Actions CI（Ruff lint + pytest）
+├── ruff.toml                  # 🔍 Ruff 代码检查配置
+├── pytest.ini                 # 🧪 Pytest 配置
+├── templates/                 # 📸 视觉模板图片
 ├── setup.py                   # ⚙️ 一键环境安装脚本
 └── requirements.txt           # 📋 Python 依赖列表
 ```
@@ -56,7 +78,7 @@ FH6_AutoBot/
 ### 前置要求
 
 #### 🖥️ 软件环境
-1. **Python 3.12+**
+1. **Python 3.10+**
 2. **Tesseract OCR** — [下载安装](https://github.com/UB-Mannheim/tesseract/releases)（安装时勾选 Add to PATH）
 3. **ViGEmBus** 驱动 — [下载安装](https://github.com/ViGEm/ViGEmBus/releases)（安装后需重启）
 4. 游戏需运行在 **窗口化** 或 **无边框窗口** 模式
@@ -89,10 +111,37 @@ python main_bot.py
 
 ---
 
+## 🧪 测试与 CI
+
+### 本地运行测试
+
+```bash
+# 安装测试依赖
+pip install pytest ruff
+
+# 运行单元测试（自动跳过硬件依赖测试）
+python -m pytest
+
+# 代码检查
+python -m ruff check .
+python -m ruff format --check .
+```
+
+### GitHub Actions
+
+每次 `push` 和 `pull_request` 到 `main` 分支会自动触发 CI 流水线：
+
+| Job | 内容 |
+|-----|------|
+| **Lint** | Ruff 代码检查 + 格式校验 |
+| **Test** | pytest 运行 65 个单元测试（ubuntu-latest，自动 mock Windows 依赖） |
+
+---
+
 ## 🔍 核心技术原理
 
 ### 视觉状态检测
-- **模板匹配 (Template Matching)**: 使用 `cv2.matchTemplate` 对菜单标签、导航锚点进行识别
+- **颜色直方图 + OCR 混合检测**: StateDetector 融合颜色分布特征与 OCR 文字识别，判定当前游戏 UI 状态
 - **反差检测**: Forza 菜单的特点——当前激活标签的模板匹配分反而较低（因为高亮样式与模板不同）
 - **PI 徽章颜色检测**: 通过 HSV 色彩空间检测 PI 徽章颜色区分车辆等级（蓝色 = S2 主力车，橙色 = B 级可删）
 
@@ -103,7 +152,7 @@ python main_bot.py
 
 ### 车库网格导航
 - **打字机走位**: 逐列从上到下扫描 3 行 × N 列的车辆网格
-- **像素取色判空**: 通过采样下方单元格的亮度和方差判断是否有车
+- **三重校验锁定**: OCR 车名关键词 (2/3) + NEW 黄色标签 + LEGENDARY 橙色稀有度
 - **NMS 去重**: 对模板匹配结果使用非极大值抑制，避免同一车辆被重复检测
 - **Cannot Afford 弹窗检测**: 加点过程中实时检测技能点不足弹窗，自动按 A 关闭并停止购买
 
