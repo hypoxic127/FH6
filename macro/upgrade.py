@@ -74,13 +74,14 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
     available_points = -1
     try:
         from collections import Counter
+
         raw_img = capture_raw_screenshot(hwnd)
         if raw_img is not None:
             h, w = raw_img.shape[:2]
             ocr_results = []
 
             # ROI: 数字区域 (h85-88%, w35-38.5%)
-            roi = raw_img[int(h * 0.85):int(h * 0.88), int(w * 0.35):int(w * 0.385)]
+            roi = raw_img[int(h * 0.85) : int(h * 0.88), int(w * 0.35) : int(w * 0.385)]
 
             if roi.size > 0:
                 gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -102,9 +103,7 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
 
                 # 4. HSV 黄色通道（放宽阈值 + 膨胀增粗笔画）
                 hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-                yellow_mask = cv2.inRange(hsv,
-                                          np.array([15, 40, 100]),
-                                          np.array([45, 255, 255]))
+                yellow_mask = cv2.inRange(hsv, np.array([15, 40, 100]), np.array([45, 255, 255]))
                 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
                 yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, kernel)
                 # 膨胀 1 次增粗抗锯齿导致的细笔画
@@ -119,16 +118,13 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
 
                 # 对每个管线执行 OCR（PSM 7 单行模式）
                 for label, binary_img in pipelines:
-                    padded = cv2.copyMakeBorder(binary_img, 20, 20, 20, 20,
-                                                cv2.BORDER_CONSTANT, value=0)
-                    up = cv2.resize(padded, None, fx=3, fy=3,
-                                    interpolation=cv2.INTER_CUBIC)
+                    padded = cv2.copyMakeBorder(binary_img, 20, 20, 20, 20, cv2.BORDER_CONSTANT, value=0)
+                    up = cv2.resize(padded, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
                     up_inv = cv2.bitwise_not(up)
                     text = pytesseract.image_to_string(
-                        up_inv,
-                        config='--psm 7 -c tessedit_char_whitelist=0123456789'
+                        up_inv, config="--psm 7 -c tessedit_char_whitelist=0123456789"
                     ).strip()
-                    nums = re.findall(r'\d+', text)
+                    nums = re.findall(r"\d+", text)
                     if nums:
                         ocr_results.append(int(nums[0]))
 
@@ -156,10 +152,10 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
             return False
         h_img, w_img = resized.shape[:2]
         # 弹窗区域: h27-83%, w26-82%
-        roi = resized[int(h_img*0.27):int(h_img*0.83), int(w_img*0.26):int(w_img*0.82)]
+        roi = resized[int(h_img * 0.27) : int(h_img * 0.83), int(w_img * 0.26) : int(w_img * 0.82)]
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
-        text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
+        text = pytesseract.image_to_string(thresh, config="--psm 6").strip().lower()
         if "cannot" in text and "afford" in text:
             log_warning(f"  ⚠️ [{step_name}] 检测到 'Cannot Afford Perk' 弹窗 (OCR: '{text[:50]}')，按 A 关闭...")
             press(vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=1.0)
@@ -188,11 +184,11 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
 
     afford_failed = False
     for j in range(3):
-        log_info(f"  -> [9] 循环 {j+1}/3: 输入 D-pad Up 1次...")
+        log_info(f"  -> [9] 循环 {j + 1}/3: 输入 D-pad Up 1次...")
         press(vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.8)
-        log_info(f"  -> [9] 循环 {j+1}/3: 按 A 确认...")
+        log_info(f"  -> [9] 循环 {j + 1}/3: 按 A 确认...")
         press(vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=1.2)
-        if _check_cannot_afford(f"循环{j+1}"):
+        if _check_cannot_afford(f"循环{j + 1}"):
             afford_failed = True
             break
 
@@ -208,4 +204,3 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
         _check_cannot_afford("步骤11")
     log_success("车辆加点宏执行完毕！页面特征应与 usepoints.png 一致")
     return available_points  # 返回剩余点数
-

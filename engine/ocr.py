@@ -82,12 +82,13 @@ IMPREZA_22B_MIN_MATCH: int = 2  # 至少命中 2/3 个才算确认
 # 空位检测阈值
 # ==========================================
 EMPTY_SLOT_BRIGHTNESS_THRESHOLD: float = 50.0  # 亮度 ≤ 此值视为暗区
-EMPTY_SLOT_VARIANCE_THRESHOLD: float = 5.0     # 方差 ≤ 此值视为纯色
+EMPTY_SLOT_VARIANCE_THRESHOLD: float = 5.0  # 方差 ≤ 此值视为纯色
 
 
 # ==========================================
 # 一、Tesseract OCR 初始化
 # ==========================================
+
 
 def setup_tesseract():
     """
@@ -114,14 +115,14 @@ def setup_tesseract():
         os.path.join(script_dir, "tools", "tesseract", "tesseract.exe"),
         r"C:\Program Files\Tesseract-OCR\tesseract.exe",
         r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-        os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe")
+        os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"),
     ]
     for path in common_paths:
         if os.path.exists(path):
             pytesseract.pytesseract.tesseract_cmd = path
             log_success(f"Configured Tesseract path: {path}")
             return True
-            
+
     log_warning("Tesseract OCR not found in common paths or PATH. OCR step may fail.")
     return False
 
@@ -129,6 +130,7 @@ def setup_tesseract():
 # ==========================================
 # 二、技能点 OCR 读取
 # ==========================================
+
 
 def read_skill_points(img):
     """
@@ -151,34 +153,34 @@ def read_skill_points(img):
         int 或 None: 解析出的技能点数字，失败时返回 None
     """
     h, w, _ = img.shape
-    
+
     # 技能点数字位于暂停菜单 Car Mastery 区域下方（蓝底黑字）
     # 手动标注确认：h: 73%-76%, w: 28%-31%
     crop_y1 = int(h * 0.73)
     crop_y2 = int(h * 0.76)
     crop_x1 = int(w * 0.28)
     crop_x2 = int(w * 0.31)
-    
+
     roi = img[crop_y1:crop_y2, crop_x1:crop_x2]
     if roi.size == 0:
         return None
-    
+
     # 保存调试图片（仅在调试模式下）
     if DEBUG_WRITE_FILES:
         cv2.imwrite("debug_skill_points_roi.png", roi)
-        
+
     # 图像预处理：蓝底黑字 → 灰度反转 → Otsu 阈值
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     inverted = cv2.bitwise_not(gray)  # 黑字变白字，蓝底变深底
     _, thresh = cv2.threshold(inverted, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
+
     # 加大边距（30px）+ 放大 3 倍
     padded = cv2.copyMakeBorder(thresh, 30, 30, 30, 30, cv2.BORDER_CONSTANT, value=[0, 0, 0])
     upscaled = cv2.resize(padded, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
-    
+
     if DEBUG_WRITE_FILES:
         cv2.imwrite("debug_skill_points_processed.png", upscaled)
-    
+
     # ===== 多策略 OCR：依次尝试不同的页面分割模式（PSM） =====
     # PSM 8: 单个词（适合纯数字）
     # PSM 7: 单行文本
@@ -194,28 +196,33 @@ def read_skill_points(img):
                 safe_print(f"{Fore.CYAN}[OCR PSM{psm}]{Style.RESET_ALL} 识别结果: {val}")
         except Exception:
             pass
-    
+
     # ===== 投票机制：从多个 PSM 的结果中选取最可信的值 =====
     if results:
         non_zero = [v for v in results if v > 0]
         if non_zero:
             # 有非零结果时，只在非零结果中投票（OCR 经常把有效数字误读为 0）
             from collections import Counter
+
             counter = Counter(non_zero)
             most_common_val, most_common_count = counter.most_common(1)[0]
             if most_common_count >= 2:
                 # 至少 2 个 PSM 给出相同结果 → 高置信度
-                safe_print(f"{Fore.GREEN}[OCR 投票]{Style.RESET_ALL} 非零多数一致: {most_common_val} (出现 {most_common_count} 次)")
+                safe_print(
+                    f"{Fore.GREEN}[OCR 投票]{Style.RESET_ALL} 非零多数一致: {most_common_val} (出现 {most_common_count} 次)"
+                )
                 return most_common_val
             else:
                 # 非零结果不一致时，取最大值（保守策略，避免少算技能点）
                 best = max(non_zero)
-                safe_print(f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 非零无多数一致，取最大值: {best} (候选: {results})")
+                safe_print(
+                    f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 非零无多数一致，取最大值: {best} (候选: {results})"
+                )
                 return best
         else:
             # 所有 PSM 都返回 0 → 需要进一步确认是否真的是零技能点
             safe_print(f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 所有模式都识别为 0，进入零技能点保底确认...")
-        
+
     # ===== 零技能点保底机制 =====
     # 当数字白名单 OCR 未检测到任何数字时，执行无限制 OCR 扫描。
     # 如果识别文本包含 "no", "avail", "point"（对应 "No Skill Points Available" 界面文字），
@@ -227,13 +234,14 @@ def read_skill_points(img):
             return 0
     except Exception:
         pass
-        
+
     return None
 
 
 # ==========================================
 # 三、通用卡片 OCR 管线
 # ==========================================
+
 
 def _ocr_card_text(card_img, debug_label="CARD"):
     """
@@ -276,6 +284,7 @@ def _ocr_card_text(card_img, debug_label="CARD"):
 # 四、绿色选中边框检测
 # ==========================================
 
+
 def has_green_selection_border(card_img):
     """
     检测卡片图像是否具有绿色选中高亮边框。
@@ -298,30 +307,32 @@ def has_green_selection_border(card_img):
     try:
         h, w, _ = card_img.shape
         hsv = cv2.cvtColor(card_img, cv2.COLOR_BGR2HSV)
-        
+
         # 创建仅覆盖外围 15 像素的边框区域掩码
         border_mask = np.zeros((h, w), dtype=np.uint8)
         border_thickness = 15
-        border_mask[0:border_thickness, :] = 255           # 上边
-        border_mask[h-border_thickness:h, :] = 255         # 下边
-        border_mask[:, 0:border_thickness] = 255           # 左边
-        border_mask[:, w-border_thickness:w] = 255         # 右边
-        
+        border_mask[0:border_thickness, :] = 255  # 上边
+        border_mask[h - border_thickness : h, :] = 255  # 下边
+        border_mask[:, 0:border_thickness] = 255  # 左边
+        border_mask[:, w - border_thickness : w] = 255  # 右边
+
         # 在 HSV 空间中过滤绿色像素
         lower_green = HSV_GREEN_BORDER_LOWER
         upper_green = HSV_GREEN_BORDER_UPPER
-        
+
         # 使用 bitwise_and 将绿色掩码限定在边框区域内
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
         green_border_mask = cv2.bitwise_and(green_mask, border_mask)
         green_pixel_count = np.sum(green_border_mask == 255)
-        
+
         # 调试输出绿色像素计数
         try:
-            safe_print(f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 边缘绿色边框像素点计数: {green_pixel_count} / 800 (阈值)")
+            safe_print(
+                f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 边缘绿色边框像素点计数: {green_pixel_count} / 800 (阈值)"
+            )
         except Exception:
             pass
-            
+
         return green_pixel_count >= 800
     except Exception as e:
         log_error(f"Error checking green selection border: {e}")
@@ -350,29 +361,31 @@ def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
         return False
     try:
         scene_h, scene_w, _ = scene_img.shape
-        
+
         # 计算带外扩的裁剪坐标（确保不超出画面边界）
         y1 = max(0, crop_y - pad)
         y2 = min(scene_h, crop_y + h + pad)
         x1 = max(0, crop_x - pad)
         x2 = min(scene_w, crop_x + w + pad)
-        
+
         crop_padded = scene_img[y1:y2, x1:x2]
         hsv = cv2.cvtColor(crop_padded, cv2.COLOR_BGR2HSV)
-        
+
         # 在整个外扩区域中统计绿色像素（不区分边框/内容）
         lower_green = HSV_GREEN_BORDER_LOWER
         upper_green = HSV_GREEN_BORDER_UPPER
-        
+
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
         green_pixel_count = np.sum(green_mask == 255)
-        
+
         # 调试输出
         try:
-            safe_print(f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 区域(含外扩边框)绿色高亮像素点计数: {green_pixel_count} / 800 (阈值)")
+            safe_print(
+                f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 区域(含外扩边框)绿色高亮像素点计数: {green_pixel_count} / 800 (阈值)"
+            )
         except Exception:
             pass
-            
+
         return green_pixel_count >= 800
     except Exception as e:
         log_error(f"Error checking padded green selection border: {e}")
@@ -382,6 +395,7 @@ def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
 # ==========================================
 # 五、UI 光标定位
 # ==========================================
+
 
 def find_cursor_position(image):
     """
@@ -414,13 +428,13 @@ def find_cursor_position(image):
         # 亮黄绿色的 HSV 阈值范围（适用于地平线 UI 高亮绿色边框）
         lower_green = HSV_GREEN_CURSOR_LOWER
         upper_green = HSV_GREEN_CURSOR_UPPER
-        
+
         mask = cv2.inRange(hsv, lower_green, upper_green)
 
         # 屏蔽左侧详情面板 & 顶部标签栏，防止面板绿色 UI 与卡片高亮边框融合
         img_h, img_w = mask.shape[:2]
-        mask[:, :int(img_w * 0.21)] = 0           # 左侧详情面板 (X=330px)
-        mask[:int(img_h * 0.19), :] = 0            # 顶部标签栏 (Y=169px)
+        mask[:, : int(img_w * 0.21)] = 0  # 左侧详情面板 (X=330px)
+        mask[: int(img_h * 0.19), :] = 0  # 顶部标签栏 (Y=169px)
 
         # 闭运算（先膨胀后腐蚀）：将高亮边框的 4 条细线桥接为完整矩形轮廓
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
@@ -430,12 +444,12 @@ def find_cursor_position(image):
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             return None
-            
+
         # 过滤面积过小的噪声轮廓（阈值 300 像素）
         valid_contours = [c for c in contours if cv2.contourArea(c) >= 300]
         if not valid_contours:
             return None
-            
+
         # 按面积降序排列，优先尝试最大的轮廓
         valid_contours.sort(key=cv2.contourArea, reverse=True)
 
@@ -452,7 +466,9 @@ def find_cursor_position(image):
             if aspect_ratio > 4.0:
                 # 宽高比过大 → 这是标签栏/标题高亮，不是车辆卡片
                 try:
-                    safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过异形轮廓: {w}x{h} (宽高比={aspect_ratio:.1f}>4.0), 面积={area:.0f}")
+                    safe_print(
+                        f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过异形轮廓: {w}x{h} (宽高比={aspect_ratio:.1f}>4.0), 面积={area:.0f}"
+                    )
                 except Exception:
                     pass
                 continue
@@ -460,7 +476,9 @@ def find_cursor_position(image):
             if min_dim < 50:
                 # 最短边太小 → UI 装饰线条或小标签
                 try:
-                    safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过过小轮廓: {w}x{h} (最短边={min_dim}<50), 面积={area:.0f}")
+                    safe_print(
+                        f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过过小轮廓: {w}x{h} (最短边={min_dim}<50), 面积={area:.0f}"
+                    )
                 except Exception:
                     pass
                 continue
@@ -468,14 +486,18 @@ def find_cursor_position(image):
             if cy <= 150:
                 # 中心在画面顶部 → 标签栏区域，不是车库网格
                 try:
-                    safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过顶部轮廓: (cx={cx}, cy={cy}) 在标签栏区域 (cy<=150), {w}x{h}")
+                    safe_print(
+                        f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 跳过顶部轮廓: (cx={cx}, cy={cy}) 在标签栏区域 (cy<=150), {w}x{h}"
+                    )
                 except Exception:
                     pass
                 continue
 
             # 通过所有校验 → 这是车库网格中的光标
             try:
-                safe_print(f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 找到高亮焦点位置: (cx={cx}, cy={cy}), 边框尺寸: {w}x{h}, 面积: {area:.0f}")
+                safe_print(
+                    f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 找到高亮焦点位置: (cx={cx}, cy={cy}), 边框尺寸: {w}x{h}, 面积: {area:.0f}"
+                )
             except Exception:
                 pass
             return cx, cy
@@ -484,7 +506,9 @@ def find_cursor_position(image):
         top = valid_contours[0]
         x, y, w, h = cv2.boundingRect(top)
         try:
-            safe_print(f"{Fore.RED}[DYNAMIC VISION]{Style.RESET_ALL} 所有轮廓均未通过车库网格校验！最大轮廓: {w}x{h} at ({x + w//2}, {y + h//2}), 面积={cv2.contourArea(top):.0f}")
+            safe_print(
+                f"{Fore.RED}[DYNAMIC VISION]{Style.RESET_ALL} 所有轮廓均未通过车库网格校验！最大轮廓: {w}x{h} at ({x + w // 2}, {y + h // 2}), 面积={cv2.contourArea(top):.0f}"
+            )
         except Exception:
             pass
         return None
@@ -500,6 +524,7 @@ def find_cursor_position(image):
 # 模块级模板缓存字典 — 避免在网格扫描循环中逐帧重复读取磁盘文件
 # 车库扫描一轮可达 120+ 次调用 find_target_car，缓存模板可显著减少 I/O
 _template_cache = {}
+
 
 def find_target_car(image, template_path, cursor_pos=None, excluded_positions=None):
     """
@@ -535,21 +560,21 @@ def find_target_car(image, template_path, cursor_pos=None, excluded_positions=No
         template = _template_cache[template_path]
         if template is None:
             return None
-            
+
         h, w, _ = template.shape
         res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
-        
+
         # 找到所有得分 >= 0.80 的匹配位置
         match_locations = np.where(res >= 0.80)
-        
+
         if len(match_locations[0]) == 0:
             return None
-        
+
         # ===== 收集匹配点并按得分降序排列 =====
         raw_points = list(zip(match_locations[1], match_locations[0]))  # (x, y)
         scored_points = [(x, y, float(res[y, x])) for x, y in raw_points]
         scored_points.sort(key=lambda p: p[2], reverse=True)
-        
+
         # ===== NMS 去重：保留间距 > 模板半宽的匹配点 =====
         # 间距小于模板尺寸一半的匹配视为同一目标
         merged = []
@@ -564,10 +589,10 @@ def find_target_car(image, template_path, cursor_pos=None, excluded_positions=No
                     break
             if not is_duplicate:
                 merged.append((cx_p, cy_p, score))
-        
+
         if not merged:
             return None
-        
+
         # ===== 排除已检查过的位置（用于删车流程中跳过已升级的车） =====
         if excluded_positions:
             exclude_dist = max(w, h) // 2
@@ -581,12 +606,14 @@ def find_target_car(image, template_path, cursor_pos=None, excluded_positions=No
                 if not is_excluded:
                     filtered.append((mx, my, ms))
             if filtered:
-                safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 排除了 {len(merged)-len(filtered)} 个已检查位置，剩余 {len(filtered)} 个候选")
+                safe_print(
+                    f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 排除了 {len(merged) - len(filtered)} 个已检查位置，剩余 {len(filtered)} 个候选"
+                )
                 merged = filtered
             else:
                 safe_print(f"{Fore.YELLOW}[DYNAMIC VISION]{Style.RESET_ALL} 所有 {len(merged)} 个匹配都在排除列表中")
                 return "ALL_EXCLUDED"
-        
+
         # ===== 选择策略：有光标则就近选择，否则选最高分 =====
         if cursor_pos is not None and len(merged) > 1:
             # 有光标位置时：选距离光标最近的匹配（避免跳过眼前的目标去追远处的）
@@ -594,17 +621,21 @@ def find_target_car(image, template_path, cursor_pos=None, excluded_positions=No
             merged.sort(key=lambda p: (p[0] - cur_x) ** 2 + (p[1] - cur_y) ** 2)
             tx, ty, best_score = merged[0]
             try:
-                safe_print(f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 找到 {len(merged)} 个匹配，选择距光标最近的: (tx={tx}, ty={ty}) score={best_score:.3f}")
+                safe_print(
+                    f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 找到 {len(merged)} 个匹配，选择距光标最近的: (tx={tx}, ty={ty}) score={best_score:.3f}"
+                )
             except Exception:
                 pass
         else:
             # 无光标位置或只有 1 个匹配：选得分最高的
             tx, ty, best_score = merged[0]
             try:
-                safe_print(f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 匹配到目标车辆 {os.path.basename(template_path)}: score={best_score:.3f} 在 (tx={tx}, ty={ty})")
+                safe_print(
+                    f"{Fore.GREEN}[DYNAMIC VISION]{Style.RESET_ALL} 匹配到目标车辆 {os.path.basename(template_path)}: score={best_score:.3f} 在 (tx={tx}, ty={ty})"
+                )
             except Exception:
                 pass
-                
+
         return tx, ty, best_score
     except Exception as e:
         log_error(f"find_target_car 执行出错: {e}")
@@ -614,6 +645,7 @@ def find_target_car(image, template_path, cursor_pos=None, excluded_positions=No
 # ==========================================
 # 七、车辆卡片校验函数
 # ==========================================
+
 
 def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
     """
@@ -646,18 +678,18 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
         return False
     try:
         h, w, _ = image.shape
-        
+
         # 裁剪光标中心附近的卡片区域
         crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
         x1 = max(0, cursor_x - crop_w // 2)
         x2 = min(w, cursor_x + crop_w // 2)
         y1 = max(0, cursor_y - crop_h // 2)
         y2 = min(h, cursor_y + crop_h // 2)
-        
+
         roi = image[y1:y2, x1:x2]
         if roi.size == 0:
             return False
-            
+
         # --- 校验 1: OCR 多关键词全命中检查 ---
         # 1998 Subaru Impreza 22B-STi Version 的独特特征关键词
         # 要求至少命中 2 个才算锁定，避免误选其它 Subaru 车型
@@ -665,33 +697,33 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
         _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
         padded = cv2.copyMakeBorder(thresh, 20, 20, 20, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
         upscaled = cv2.resize(padded, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-        
+
         text = pytesseract.image_to_string(upscaled).strip().lower()
-        
+
         # 目标车特征关键词匹配（使用全局常量）
         matched_kws = [kw for kw in IMPREZA_22B_KEYWORDS if kw in text]
         has_keyword = len(matched_kws) >= IMPREZA_22B_MIN_MATCH
-        
+
         if has_keyword:
             safe_print(f"{Fore.GREEN}  [多关键词命中] 匹配 {len(matched_kws)}/3: {matched_kws}{Style.RESET_ALL}")
-        
+
         # --- 校验 2: HSV 颜色检查（寻找 'NEW' 黄色标签） ---
         # NEW 标签位于卡片右侧 → 高度 71%-82%、宽度 82%-96%
         roi_h, roi_w = roi.shape[:2]
-        roi_bottom = roi[int(roi_h*0.71):int(roi_h*0.82), int(roi_w*0.82):int(roi_w*0.96)]
+        roi_bottom = roi[int(roi_h * 0.71) : int(roi_h * 0.82), int(roi_w * 0.82) : int(roi_w * 0.96)]
         hsv_roi = cv2.cvtColor(roi_bottom, cv2.COLOR_BGR2HSV)
         lower_yellow = HSV_YELLOW_NEW_LOWER
         upper_yellow = HSV_YELLOW_NEW_UPPER
-        
+
         yellow_mask = cv2.inRange(hsv_roi, lower_yellow, upper_yellow)
         yellow_pixels = cv2.countNonZero(yellow_mask)
-        
+
         has_new_tag = yellow_pixels > 300
-        
+
         # --- 校验 3: LEGENDARY 橙色稀有度标签检测 ---
         # 1998 Impreza 22B 固定为 LEGENDARY（橙色底色），COMMON/RARE/EPIC 不是目标车
         # 稀有度标签区域: 卡片高度 82%-94%、宽度 4%-70%
-        rarity_roi = roi[int(roi_h*0.82):int(roi_h*0.94), int(roi_w*0.04):int(roi_w*0.70)]
+        rarity_roi = roi[int(roi_h * 0.82) : int(roi_h * 0.94), int(roi_w * 0.04) : int(roi_w * 0.70)]
         if rarity_roi.size > 0:
             hsv_rarity = cv2.cvtColor(rarity_roi, cv2.COLOR_BGR2HSV)
             # 橙色 HSV: H=10-25, S>100, V>100
@@ -701,19 +733,23 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
         else:
             orange_pixels = 0
             has_legendary = False
-        
+
         # --- 综合判断（三重校验） ---
         if has_keyword and has_new_tag and has_legendary:
-            log_success(f"[锁定成功] 三重校验通过！关键词 {len(matched_kws)}/3 {matched_kws} + NEW标签 ({yellow_pixels}px) + LEGENDARY ({orange_pixels}px)")
+            log_success(
+                f"[锁定成功] 三重校验通过！关键词 {len(matched_kws)}/3 {matched_kws} + NEW标签 ({yellow_pixels}px) + LEGENDARY ({orange_pixels}px)"
+            )
             return True
         else:
             # 打印失败原因（方便调试）
             log_warning("[锁定失败] 三重校验未全部通过:")
             if not has_keyword:
-                log_warning(f"  ❌ 原因1：关键词不足 (命中 {len(matched_kws)}/3 {matched_kws}, 需≥2, OCR: '{text.replace(chr(10), ' ')}')")
+                log_warning(
+                    f"  ❌ 原因1：关键词不足 (命中 {len(matched_kws)}/3 {matched_kws}, 需≥2, OCR: '{text.replace(chr(10), ' ')}')"
+                )
             else:
                 log_success(f"  ✓ 检查1：关键词命中 {len(matched_kws)}/3 {matched_kws}")
-                
+
             if not has_new_tag:
                 log_warning(f"  ❌ 原因2：没有检测到 'NEW' 标签 (黄色像素: {yellow_pixels} <= 300)")
             else:
@@ -723,12 +759,13 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
                 log_warning(f"  ❌ 原因3：不是 LEGENDARY (橙色像素: {orange_pixels} <= 200)")
             else:
                 log_success(f"  ✓ 检查3：LEGENDARY 橙色标签 (橙色像素: {orange_pixels})")
-                
+
             return False
-            
+
     except Exception as e:
         log_error(f"verify_new_target_car 校验出错: {e}")
     return False
+
 
 def check_new_tag_only(image, cursor_x, cursor_y):
     """
@@ -758,29 +795,32 @@ def check_new_tag_only(image, cursor_x, cursor_y):
         x2 = min(w, cursor_x + crop_w // 2)
         y1 = max(0, cursor_y - crop_h // 2)
         y2 = min(h, cursor_y + crop_h // 2)
-        
+
         roi = image[y1:y2, x1:x2]
         if roi.size == 0:
             return False
-        
+
         # NEW 标签在卡片右侧 → 高度 71%-82%、宽度 82%-96%
         roi_h, roi_w = roi.shape[:2]
-        roi_bottom = roi[int(roi_h*0.71):int(roi_h*0.82), int(roi_w*0.82):int(roi_w*0.96)]
+        roi_bottom = roi[int(roi_h * 0.71) : int(roi_h * 0.82), int(roi_w * 0.82) : int(roi_w * 0.96)]
         hsv_roi = cv2.cvtColor(roi_bottom, cv2.COLOR_BGR2HSV)
         lower_yellow = HSV_YELLOW_NEW_LOWER
         upper_yellow = HSV_YELLOW_NEW_UPPER
         yellow_mask = cv2.inRange(hsv_roi, lower_yellow, upper_yellow)
         yellow_pixels = cv2.countNonZero(yellow_mask)
-        
+
         has_new = yellow_pixels > 300
         if has_new:
             log_success(f"[NEW 标签检测] ✓ 检测到 NEW 标签 (黄色像素: {yellow_pixels}，区域:卡片底部)")
         else:
-            log_warning(f"[NEW 标签检测] ✗ 未检测到 NEW 标签 (黄色像素: {yellow_pixels} <= 300，区域:卡片底部)，可能已加过点")
+            log_warning(
+                f"[NEW 标签检测] ✗ 未检测到 NEW 标签 (黄色像素: {yellow_pixels} <= 300，区域:卡片底部)，可能已加过点"
+            )
         return has_new
     except Exception as e:
         log_error(f"check_new_tag_only 出错: {e}")
     return False
+
 
 def check_is_high_class(image, cursor_x, cursor_y):
     """
@@ -810,35 +850,35 @@ def check_is_high_class(image, cursor_x, cursor_y):
         x2 = min(w, cursor_x + crop_w // 2)
         y1 = max(0, cursor_y - crop_h // 2)
         y2 = min(h, cursor_y + crop_h // 2)
-        
+
         card = image[y1:y2, x1:x2]
         if card.size == 0:
             return False
-        
+
         card_h, card_w = card.shape[:2]
         # PI 徽章: 卡片高度 82%-94%、宽度 71%-96% 区域
         # 只看右侧 PI 徽章 (S2/B)，避开左侧 LEGENDARY 金色标签和右侧越界
-        badge = card[int(card_h*0.82):int(card_h*0.94), int(card_w*0.71):int(card_w*0.96)]
-        
+        badge = card[int(card_h * 0.82) : int(card_h * 0.94), int(card_w * 0.71) : int(card_w * 0.96)]
+
         hsv = cv2.cvtColor(badge, cv2.COLOR_BGR2HSV)
-        
+
         # 蓝色 (S1/S2 徽章): H=100-130, S>50, V>50
         blue_mask = cv2.inRange(hsv, np.array([100, 50, 50]), np.array([130, 255, 255]))
         blue_pixels = cv2.countNonZero(blue_mask)
-        
+
         # 橙色 (B 级徽章): H=5-25, S>100, V>100
         orange_mask = cv2.inRange(hsv, np.array([5, 100, 100]), np.array([25, 255, 255]))
         orange_pixels = cv2.countNonZero(orange_mask)
-        
+
         # 判定: 蓝色多 → S2，橙色多 → B 级
         if blue_pixels > orange_pixels and blue_pixels > 50:
             log_warning(f"[PI 检测] ⚠ 检测到高级别车辆 (蓝色: {blue_pixels} > 橙色: {orange_pixels})")
             return True
-        
+
         if orange_pixels > blue_pixels and orange_pixels > 50:
             log_success(f"[PI 检测] ✓ B 级车辆 (橙色: {orange_pixels} > 蓝色: {blue_pixels})")
             return False
-        
+
         # 兜底: 两种颜色都少，用蓝色阈值判定
         is_high = blue_pixels > 50
         if is_high:
@@ -854,6 +894,7 @@ def check_is_high_class(image, cursor_x, cursor_y):
 # ==========================================
 # 八、通用 ROI 区域 OCR
 # ==========================================
+
 
 def read_text_in_roi(image, x1, y1, x2, y2, whitelist=None):
     """
@@ -882,27 +923,27 @@ def read_text_in_roi(image, x1, y1, x2, y2, whitelist=None):
         rx2 = min(w, int(x2))
         ry1 = max(0, int(y1))
         ry2 = min(h, int(y2))
-        
+
         roi = image[ry1:ry2, rx1:rx2]
         if roi.size == 0:
             return ""
-            
+
         # 保存调试原图（仅在调试模式下）
         if DEBUG_WRITE_FILES:
             cv2.imwrite("debug_ocr_raw.png", roi)
-        
+
         # 图像预处理：放大 3 倍 → 灰度化
         resized_roi = cv2.resize(roi, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
         gray = cv2.cvtColor(resized_roi, cv2.COLOR_BGR2GRAY)
-        
+
         if DEBUG_WRITE_FILES:
             cv2.imwrite("debug_ocr_processed.png", gray)
-        
+
         # OCR 识别配置
         config_str = "--psm 7"  # 单行文本模式
         if whitelist is not None:
             config_str += f" -c tessedit_char_whitelist={whitelist}"
-            
+
         text = pytesseract.image_to_string(gray, config=config_str).strip().lower()
         return text
     except Exception as e:
@@ -913,6 +954,7 @@ def read_text_in_roi(image, x1, y1, x2, y2, whitelist=None):
 # ==========================================
 # 九、车库网格空位检测
 # ==========================================
+
 
 def has_cell_below(image, cursor_x, cursor_y):
     """
@@ -939,37 +981,39 @@ def has_cell_below(image, cursor_x, cursor_y):
     try:
         h, w, _ = image.shape
         crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
-        
+
         # CARD_CROP 区域的绝对坐标
         card_x1 = max(0, cursor_x - crop_w // 2)
         card_y1 = max(0, cursor_y - crop_h // 2)
-        
+
         # 采样区域: h101%-192%, w4%-97%
         sy1 = max(0, int(card_y1 + crop_h * 1.01))
         sy2 = min(h, int(card_y1 + crop_h * 1.92))
         sx1 = max(0, int(card_x1 + crop_w * 0.04))
         sx2 = min(w, int(card_x1 + crop_w * 0.97))
-        
+
         # 超出画面底部 → 没有下一行
         if sy1 >= h - 30:
             safe_print(f"{Fore.YELLOW}[GRID]{Style.RESET_ALL} 下方超出画面边界 (sy1={sy1}, h={h})")
             return False
-        
+
         sample = image[sy1:sy2, sx1:sx2]
         if sample.size == 0:
             return False
-        
+
         # 计算采样区域的统计特征
         gray_sample = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
         mean_brightness = float(np.mean(gray_sample))  # 平均亮度
-        std_brightness = float(np.std(gray_sample))    # 亮度方差（颜色丰富度）
-        
+        std_brightness = float(np.std(gray_sample))  # 亮度方差（颜色丰富度）
+
         # 判断规则：亮度 > 40 或方差 > 15 即视为有车
         has_car = mean_brightness > 40 or std_brightness > 15
-        
-        safe_print(f"{Fore.CYAN}[GRID]{Style.RESET_ALL} 下方单元格检测: 亮度={mean_brightness:.1f}, 方差={std_brightness:.1f} → {'有车' if has_car else '空位'}")
+
+        safe_print(
+            f"{Fore.CYAN}[GRID]{Style.RESET_ALL} 下方单元格检测: 亮度={mean_brightness:.1f}, 方差={std_brightness:.1f} → {'有车' if has_car else '空位'}"
+        )
         return has_car
-        
+
     except Exception as e:
         log_error(f"has_cell_below 检测出错: {e}")
     return False
@@ -978,6 +1022,7 @@ def has_cell_below(image, cursor_x, cursor_y):
 # ==========================================
 # 十、车库网格空位检测（统一版）
 # ==========================================
+
 
 def is_empty_slot(image: np.ndarray, cursor_x: int, cursor_y: int) -> bool:
     """
@@ -1015,12 +1060,15 @@ def is_empty_slot(image: np.ndarray, cursor_x: int, cursor_y: int) -> bool:
         gray = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
         mean_brightness = float(np.mean(gray))
         std_brightness = float(np.std(gray))
-        is_empty = (mean_brightness <= EMPTY_SLOT_BRIGHTNESS_THRESHOLD
-                    and std_brightness <= EMPTY_SLOT_VARIANCE_THRESHOLD)
+        is_empty = (
+            mean_brightness <= EMPTY_SLOT_BRIGHTNESS_THRESHOLD and std_brightness <= EMPTY_SLOT_VARIANCE_THRESHOLD
+        )
         if is_empty:
-            safe_print(f"{Fore.YELLOW}[GRID]{Style.RESET_ALL} "
-                       f"空位检测: 亮度={mean_brightness:.1f}, "
-                       f"方差={std_brightness:.1f} → 空位")
+            safe_print(
+                f"{Fore.YELLOW}[GRID]{Style.RESET_ALL} "
+                f"空位检测: 亮度={mean_brightness:.1f}, "
+                f"方差={std_brightness:.1f} → 空位"
+            )
         return is_empty
     except Exception as e:
         log_error(f"is_empty_slot 检测出错: {e}")
@@ -1063,8 +1111,7 @@ def detect_selected_brand_tab(
         return None
 
     rh, rw = raw_img.shape[:2]
-    tab_strip = raw_img[int(rh * roi_y[0]):int(rh * roi_y[1]),
-                        int(rw * roi_x[0]):int(rw * roi_x[1])]
+    tab_strip = raw_img[int(rh * roi_y[0]) : int(rh * roi_y[1]), int(rw * roi_x[0]) : int(rw * roi_x[1])]
     if tab_strip.size == 0:
         return None
 
@@ -1078,16 +1125,16 @@ def detect_selected_brand_tab(
     min_mean: float = 999.0
     min_x: int = 0
     for xi in range(0, tab_w - win, 5):
-        m = float(np.mean(tab_gray[:, xi:xi + win]))
+        m = float(np.mean(tab_gray[:, xi : xi + win]))
         if m < min_mean:
             min_mean = m
             min_x = xi
 
     # 向两侧扩展暗区
     xs, xe = min_x, min_x + win
-    while xs > 0 and float(np.mean(tab_gray[:, max(0, xs - 10):xs])) < 120:
+    while xs > 0 and float(np.mean(tab_gray[:, max(0, xs - 10) : xs])) < 120:
         xs -= 10
-    while xe < tab_w and float(np.mean(tab_gray[:, xe:min(tab_w, xe + 10)])) < 120:
+    while xe < tab_w and float(np.mean(tab_gray[:, xe : min(tab_w, xe + 10)])) < 120:
         xe += 10
 
     # OCR 选中标签文字
@@ -1098,10 +1145,8 @@ def detect_selected_brand_tab(
     _, sel_thresh = cv2.threshold(sel_gray, 150, 255, cv2.THRESH_BINARY)
 
     try:
-        text = pytesseract.image_to_string(
-            sel_thresh, config='--psm 7').strip().lower()
+        text = pytesseract.image_to_string(sel_thresh, config="--psm 7").strip().lower()
         return text if text else None
     except Exception as e:
         log_error(f"detect_selected_brand_tab OCR 异常: {e}")
         return None
-

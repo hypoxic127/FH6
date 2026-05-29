@@ -41,16 +41,19 @@ from engine.ocr import (
 # HSV 常量合法性
 # ==========================================
 
+
 class TestHSVConstants:
     """HSV 颜色阈值常量应在 OpenCV 合法范围内。"""
 
-    @pytest.mark.parametrize("lower,upper,name", [
-        (HSV_GREEN_BORDER_LOWER, HSV_GREEN_BORDER_UPPER, "GREEN_BORDER"),
-        (HSV_GREEN_CURSOR_LOWER, HSV_GREEN_CURSOR_UPPER, "GREEN_CURSOR"),
-        (HSV_YELLOW_NEW_LOWER, HSV_YELLOW_NEW_UPPER, "YELLOW_NEW"),
-    ])
-    def test_hsv_range_valid(self, lower: np.ndarray, upper: np.ndarray,
-                             name: str) -> None:
+    @pytest.mark.parametrize(
+        "lower,upper,name",
+        [
+            (HSV_GREEN_BORDER_LOWER, HSV_GREEN_BORDER_UPPER, "GREEN_BORDER"),
+            (HSV_GREEN_CURSOR_LOWER, HSV_GREEN_CURSOR_UPPER, "GREEN_CURSOR"),
+            (HSV_YELLOW_NEW_LOWER, HSV_YELLOW_NEW_UPPER, "YELLOW_NEW"),
+        ],
+    )
+    def test_hsv_range_valid(self, lower: np.ndarray, upper: np.ndarray, name: str) -> None:
         """H∈[0,179], S∈[0,255], V∈[0,255]，且 lower <= upper。"""
         assert lower[0] >= 0 and upper[0] <= 179, f"{name}: H out of range"
         assert lower[1] >= 0 and upper[1] <= 255, f"{name}: S out of range"
@@ -71,6 +74,7 @@ class TestHSVConstants:
 # ==========================================
 # IMPREZA 关键词匹配逻辑
 # ==========================================
+
 
 class TestImprezaKeywords:
     """关键词列表和最低命中数应一致且合理。"""
@@ -99,6 +103,7 @@ class TestImprezaKeywords:
 # has_green_selection_border() — 合成图像
 # ==========================================
 
+
 class TestGreenSelectionBorder:
     """绿色选中边框检测（使用合成 BGR 图像）。"""
 
@@ -117,9 +122,7 @@ class TestGreenSelectionBorder:
         """四边绘制绿色矩形 → 检测到边框。"""
         img = np.zeros((200, 280, 3), dtype=np.uint8)
         # 在 HSV 中 H=60(绿色), S=200, V=200 → 转为 BGR
-        green_bgr = cv2.cvtColor(
-            np.array([[[60, 200, 200]]], dtype=np.uint8), cv2.COLOR_HSV2BGR
-        )[0, 0]
+        green_bgr = cv2.cvtColor(np.array([[[60, 200, 200]]], dtype=np.uint8), cv2.COLOR_HSV2BGR)[0, 0]
         thickness = 15
         cv2.rectangle(img, (0, 0), (279, 199), green_bgr.tolist(), thickness)
         assert has_green_selection_border(img)
@@ -128,6 +131,7 @@ class TestGreenSelectionBorder:
 # ==========================================
 # detect_selected_brand_tab() — 暗区检测
 # ==========================================
+
 
 class TestDetectSelectedBrandTab:
     """品牌标签栏暗区检测算法（不依赖 OCR 结果精度）。"""
@@ -169,6 +173,7 @@ class TestDetectSelectedBrandTab:
 # ==========================================
 # is_empty_slot() — 空位检测
 # ==========================================
+
 
 class TestIsEmptySlot:
     """车库空位检测（暗色低方差 → 空位）。"""

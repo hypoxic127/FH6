@@ -24,6 +24,7 @@ from farm.skills import (
 # get_matches_needed()
 # ==========================================
 
+
 class TestGetMatchesNeeded:
     """比赛场次计算器测试。"""
 
@@ -60,6 +61,7 @@ class TestGetMatchesNeeded:
 # ==========================================
 # Race State Persistence
 # ==========================================
+
 
 class TestRaceStatePersistence:
     """断点续跑 JSON 持久化测试。"""

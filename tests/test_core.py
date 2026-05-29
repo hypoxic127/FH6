@@ -39,20 +39,17 @@ class TestCoreConstants:
 
     def test_state_constants_unique(self) -> None:
         """四个状态常量必须互不相同。"""
-        states = {STATE_BUY_CARS, STATE_UPGRADE_CARS,
-                  STATE_TRASH_CARS, STATE_FARM_POINTS}
+        states = {STATE_BUY_CARS, STATE_UPGRADE_CARS, STATE_TRASH_CARS, STATE_FARM_POINTS}
         assert len(states) == 4
 
     def test_state_constants_are_strings(self) -> None:
         """状态常量应为字符串类型。"""
-        for s in [STATE_BUY_CARS, STATE_UPGRADE_CARS,
-                  STATE_TRASH_CARS, STATE_FARM_POINTS]:
+        for s in [STATE_BUY_CARS, STATE_UPGRADE_CARS, STATE_TRASH_CARS, STATE_FARM_POINTS]:
             assert isinstance(s, str)
 
     def test_state_names_have_prefix(self) -> None:
         """状态常量应以 STATE_ 开头（命名规范）。"""
-        for s in [STATE_BUY_CARS, STATE_UPGRADE_CARS,
-                  STATE_TRASH_CARS, STATE_FARM_POINTS]:
+        for s in [STATE_BUY_CARS, STATE_UPGRADE_CARS, STATE_TRASH_CARS, STATE_FARM_POINTS]:
             assert s.startswith("STATE_")
 
 

@@ -97,7 +97,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
 
                     log_info("正在连续按 4 次 B 键返回主页标签...")
                     for i in range(4):
-                        log_info(f"  -> [] 按 B ({i+1}/4)...")
+                        log_info(f"  -> [] 按 B ({i + 1}/4)...")
                         _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_B, delay=1.0)
 
                     log_success("已按 B 键 4 次返回主页标签！")
@@ -115,7 +115,9 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                     upgraded_count = 0
                     while True:
                         upgraded_count += 1
-                        log_info(f"\n{Fore.YELLOW}[CAR #{upgraded_count}]{Style.RESET_ALL} 正在导航并选中第 {upgraded_count} 辆车...")
+                        log_info(
+                            f"\n{Fore.YELLOW}[CAR #{upgraded_count}]{Style.RESET_ALL} 正在导航并选中第 {upgraded_count} 辆车..."
+                        )
                         success = navigate_to_car_in_garage(hwnd, gamepad)
 
                         # 触发条件 1: 导航返回 False → 无更多 NEW 车，立即进入删车
@@ -228,6 +230,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                         farm_attempt += 1
                         try:
                             import farm.skills as module_farm_skills
+
                             log_info(f"正在启动 module_farm_skills (第 {farm_attempt} 次)...")
                             module_farm_skills.main(gamepad=gamepad)
                             log_success("刷图模块已返回！正在验证技能点...")
@@ -247,6 +250,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                         log_info("  [验证] 正在恢复窗口焦点和截图上下文...")
                         try:
                             from engine.utils import reset_mss
+
                             reset_mss()
                         except Exception:
                             pass
@@ -259,6 +263,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                         cars_found = False
 
                         from engine.state_detect import get_detector
+
                         _detector = get_detector()
 
                         for rb_press in range(8):  # 最多按 8 次 RB 遍历所有标签

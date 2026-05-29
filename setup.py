@@ -23,7 +23,9 @@ TESSERACT_DIR = os.path.join(TOOLS_DIR, "tesseract")
 TESSERACT_EXE = os.path.join(TESSERACT_DIR, "tesseract.exe")
 
 # Tesseract 便携版下载地址 (UB Mannheim 官方构建)
-TESSERACT_URL = "https://github.com/UB-Mannheim/tesseract/releases/download/v5.5.0/tesseract-ocr-w64-setup-5.5.0.20241111.exe"
+TESSERACT_URL = (
+    "https://github.com/UB-Mannheim/tesseract/releases/download/v5.5.0/tesseract-ocr-w64-setup-5.5.0.20241111.exe"
+)
 
 
 def print_header(title):
@@ -41,10 +43,7 @@ def install_pip_deps():
         return False
 
     print("  正在执行 pip install -r requirements.txt ...")
-    result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-r", req_file],
-        capture_output=True, text=True
-    )
+    result = subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file], capture_output=True, text=True)
     if result.returncode == 0:
         print("  ✅ Python 依赖安装成功！")
         return True
@@ -66,7 +65,7 @@ def check_tesseract():
     try:
         result = subprocess.run(["tesseract", "--version"], capture_output=True, text=True)
         if result.returncode == 0:
-            version = result.stdout.split('\n')[0]
+            version = result.stdout.split("\n")[0]
             print(f"  ✅ Tesseract 已在系统 PATH 中: {version}")
             return True
     except FileNotFoundError:
@@ -111,6 +110,7 @@ def check_vigembus():
     # 尝试通过 vgamepad 检测
     try:
         import vgamepad as vg
+
         gamepad = vg.VX360Gamepad()
         del gamepad
         print("  ✅ ViGEmBus 驱动工作正常！（虚拟手柄测试通过）")
@@ -133,9 +133,9 @@ def main():
     print("🏎️ " * 10)
 
     results = {}
-    results['pip'] = install_pip_deps()
-    results['tesseract'] = check_tesseract()
-    results['vigembus'] = check_vigembus()
+    results["pip"] = install_pip_deps()
+    results["tesseract"] = check_tesseract()
+    results["vigembus"] = check_vigembus()
 
     # 总结
     print_header("安装结果总结")

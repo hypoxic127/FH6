@@ -9,6 +9,7 @@ FH6_AutoBot 公共工具模块 (utils.py)
   - 虚拟手柄按键封装（按下→释放→延迟）
   - 屏幕截图单例（MSS，避免多个模块各自创建 GDI 句柄导致资源泄露）
 """
+
 import ctypes
 import os
 import sys
@@ -26,6 +27,7 @@ from colorama import Fore, Style, init
 # 2. 减少启动时间（mss 导入有一定开销）
 _mss_instance = None
 
+
 def get_mss():
     """
     获取共享的 MSS 截图单例。
@@ -35,6 +37,7 @@ def get_mss():
     global _mss_instance
     if _mss_instance is None:
         import mss
+
         _mss_instance = mss.MSS()
     return _mss_instance
 
@@ -58,6 +61,7 @@ def reset_mss() -> None:
         _mss_instance = None
         log_info("MSS 截图实例已重置")
 
+
 # 初始化 colorama（autoreset=True 使得每条 print 后自动重置颜色）
 init(autoreset=True)
 
@@ -67,6 +71,7 @@ init(autoreset=True)
 # ==========================================
 # 所有日志函数都经过 safe_print 包装，以安全处理终端编码不支持的 Unicode 字符
 # （如 Emoji 表情在某些 Windows 终端下会触发 UnicodeEncodeError）
+
 
 def safe_print(msg):
     """
@@ -78,8 +83,8 @@ def safe_print(msg):
         print(msg)
     except UnicodeEncodeError:
         try:
-            enc = sys.stdout.encoding or 'utf-8'
-            print(msg.encode(enc, errors='replace').decode(enc))
+            enc = sys.stdout.encoding or "utf-8"
+            print(msg.encode(enc, errors="replace").decode(enc))
         except Exception:
             pass
 
@@ -88,13 +93,16 @@ def log_info(msg):
     """输出 [INFO] 级别日志（青色前缀）"""
     safe_print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} {msg}")
 
+
 def log_success(msg):
     """输出 [SUCCESS] 级别日志（绿色前缀）"""
     safe_print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} {msg}")
 
+
 def log_warning(msg):
     """输出 [WARNING] 级别日志（黄色前缀）"""
     safe_print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {msg}")
+
 
 def log_error(msg):
     """输出 [ERROR] 级别日志（红色前缀）"""
@@ -104,6 +112,7 @@ def log_error(msg):
 # ==========================================
 # 游戏窗口操作
 # ==========================================
+
 
 def find_game_window():
     """
@@ -124,6 +133,7 @@ def find_game_window():
 
     # 策略 2：模糊枚举所有窗口
     found_hwnd = [None]
+
     def foreach_window(h, lParam):
         length = ctypes.windll.user32.GetWindowTextLengthW(h)
         if length > 0:
@@ -138,6 +148,7 @@ def find_game_window():
     EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
     EnumWindows(EnumWindowsProc(foreach_window), 0)
     return found_hwnd[0]
+
 
 def force_foreground(hwnd):
     """
@@ -160,6 +171,7 @@ def force_foreground(hwnd):
         ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE: 从最小化恢复
     time.sleep(1.5)  # 等待窗口动画和渲染完成
 
+
 def get_client_rect(hwnd):
     """
     获取游戏窗口客户区（Client Area）的屏幕绝对坐标。
@@ -181,6 +193,7 @@ def get_client_rect(hwnd):
 # ==========================================
 # 手柄操作
 # ==========================================
+
 
 def press_button(gamepad, button, delay=0.5):
     """

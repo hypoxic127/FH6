@@ -27,25 +27,28 @@ from engine.utils import press_button as _press_button
 # 全局配置参数
 # ==========================================
 
-MAX_SKILL_POINTS = 999     # 技能点满值上限
+MAX_SKILL_POINTS = 999  # 技能点满值上限
 
-POINTS_PER_CAR = 30        # 每辆 Impreza 技能树加满超级抽奖需要 30 点
+POINTS_PER_CAR = 30  # 每辆 Impreza 技能树加满超级抽奖需要 30 点
 
 # 每轮循环能够处理的车辆数 = 999 // 30 = 33 辆
 CARS_TO_PROCESS = MAX_SKILL_POINTS // POINTS_PER_CAR
 
 # 主状态机的四个状态常量（循环顺序：刷点 -> 买车 -> 加点 -> 卖车 -> 刷点...）
-STATE_BUY_CARS = "STATE_BUY_CARS"         # 阶段 2：批量购买 Subaru Impreza
-STATE_UPGRADE_CARS = "STATE_UPGRADE_CARS" # 阶段 3：逐辆消耗技能点升级技能树
-STATE_TRASH_CARS = "STATE_TRASH_CARS"     # 阶段 4：移除已升级的 Impreza、保留主力车
-STATE_FARM_POINTS = "STATE_FARM_POINTS"   # 阶段 1：自动跑 EventLab 刷到 999 技能点
+STATE_BUY_CARS = "STATE_BUY_CARS"  # 阶段 2：批量购买 Subaru Impreza
+STATE_UPGRADE_CARS = "STATE_UPGRADE_CARS"  # 阶段 3：逐辆消耗技能点升级技能树
+STATE_TRASH_CARS = "STATE_TRASH_CARS"  # 阶段 4：移除已升级的 Impreza、保留主力车
+STATE_FARM_POINTS = "STATE_FARM_POINTS"  # 阶段 1：自动跑 EventLab 刷到 999 技能点
 
 # MSS singleton - use shared instance from utils to avoid duplicate GDI handles
+
 
 def _get_mss():
     """Proxy to shared MSS singleton in utils.py"""
     from engine.utils import get_mss
+
     return get_mss()
+
 
 # 焦点检查节流（避免每帧 1.5s 的抢焦点延迟）
 
@@ -98,7 +101,9 @@ def capture_screenshot(hwnd):
 
             # 防御：窗口坐标异常（最小化时可能返回 0x0 或负坐标）
             if cw <= 0 or ch <= 0 or cx < -10000:
-                log_error(f"截图捕获失败: Region has zero or negative size: {{'top': {cy}, 'left': {cx}, 'width': {cw}, 'height': {ch}}}")
+                log_error(
+                    f"截图捕获失败: Region has zero or negative size: {{'top': {cy}, 'left': {cx}, 'width': {cw}, 'height': {ch}}}"
+                )
                 return None, cx, cy, cw, ch
 
         except Exception as e:
@@ -119,7 +124,8 @@ def capture_screenshot(hwnd):
         try:
             import utils
             from utils import get_mss as _reset_check
-            if hasattr(utils, '_mss_instance') and utils._mss_instance is not None:
+
+            if hasattr(utils, "_mss_instance") and utils._mss_instance is not None:
                 log_warning("正在重置 MSS 截图上下文...")
                 try:
                     utils._mss_instance.close()
@@ -155,4 +161,3 @@ def capture_raw_screenshot(hwnd):
         return cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
     except Exception:
         return None
-

@@ -48,11 +48,23 @@ def _ocr_detect_menu_tab(hwnd):
     if resized is None:
         return 0, ""
     h, w = resized.shape[:2]
-    roi = resized[int(h*0.14):int(h*0.18), int(w*0.09):int(w*0.57)]
+    roi = resized[int(h * 0.14) : int(h * 0.18), int(w * 0.09) : int(w * 0.57)]
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
     text = pytesseract.image_to_string(thresh).strip().lower()
-    keywords = ["campaign", "drive", "collection", "festival", "settings", "buy", "cars", "horizon", "online", "creative", "store"]
+    keywords = [
+        "campaign",
+        "drive",
+        "collection",
+        "festival",
+        "settings",
+        "buy",
+        "cars",
+        "horizon",
+        "online",
+        "creative",
+        "store",
+    ]
     matched = sum(1 for kw in keywords if kw in text)
     return matched, text
 
@@ -66,10 +78,10 @@ def _ocr_wait_for_car_select(hwnd, max_poll=15):
         if raw_poll is None:
             continue
         h_p, w_p = raw_poll.shape[:2]
-        top_roi = raw_poll[int(h_p * 0.09):int(h_p * 0.13), int(w_p * 0.06):int(w_p * 0.16)]
+        top_roi = raw_poll[int(h_p * 0.09) : int(h_p * 0.13), int(w_p * 0.06) : int(w_p * 0.16)]
         gray_top = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
         _, thresh_top = cv2.threshold(gray_top, 200, 255, cv2.THRESH_BINARY)
-        text_top = pytesseract.image_to_string(thresh_top, config='--psm 7').strip().lower()
+        text_top = pytesseract.image_to_string(thresh_top, config="--psm 7").strip().lower()
         if "car" in text_top and "selec" in text_top:
             log_success(f"    ✅ 车库已加载！(OCR: '{text_top}'，等待 {poll_i} 秒)")
             return True
@@ -97,11 +109,11 @@ def navigate_menu_to_garage(hwnd, gamepad):
         time.sleep(1.0)
         matched, text = _ocr_detect_menu_tab(hwnd)
         if matched >= 1:
-            log_success(f"    检测到菜单已加载！第 {attempt+1} 次")
+            log_success(f"    检测到菜单已加载！第 {attempt + 1} 次")
             detected = True
             break
         if (attempt + 1) % 3 == 0:
-            log_info(f"  ... 第 {attempt+1} 次 OCR: '{text[:80]}'")
+            log_info(f"  ... 第 {attempt + 1} 次 OCR: '{text[:80]}'")
     if not detected:
         log_warning("  ⚠️ 超时 30 次仍未到达 Campaign，继续...")
 
@@ -141,12 +153,23 @@ def safe_exit_to_menu(hwnd, gamepad):
         if resized is not None:
             try:
                 h, w = resized.shape[:2]
-                roi = resized[int(h*0.14):int(h*0.18), int(w*0.09):int(w*0.57)]
+                roi = resized[int(h * 0.14) : int(h * 0.18), int(w * 0.09) : int(w * 0.57)]
                 gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                 _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
                 text = pytesseract.image_to_string(thresh).strip().lower()
-                menu_keywords = ["campaign", "cars", "horizon", "online", "creative", "store",
-                                 "buy", "sell", "garage", "character", "customizable"]
+                menu_keywords = [
+                    "campaign",
+                    "cars",
+                    "horizon",
+                    "online",
+                    "creative",
+                    "store",
+                    "buy",
+                    "sell",
+                    "garage",
+                    "character",
+                    "customizable",
+                ]
                 matched_count = sum(1 for kw in menu_keywords if kw in text)
                 if matched_count >= 2:
                     log_success(f"[视觉刹车] ✅ 检测到菜单标签 (匹配 {matched_count} 个)，成功退回主菜单！")

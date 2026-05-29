@@ -28,15 +28,15 @@ def _wait_for_designs_and_paints(hwnd, max_wait=8):
             continue
         h, w = raw_img.shape[:2]
         # "Designs and Paints" 页面标题 (7-25% 高度, 0-25% 宽度)
-        top_roi = raw_img[int(h * 0.07):int(h * 0.25), 0:int(w * 0.25)]
+        top_roi = raw_img[int(h * 0.07) : int(h * 0.25), 0 : int(w * 0.25)]
         gray = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
-        text = pytesseract.image_to_string(thresh, config='--psm 7').strip().lower()
+        text = pytesseract.image_to_string(thresh, config="--psm 7").strip().lower()
         if "design" in text and "paint" in text:
-            log_success(f"  ✅ 检测到 'Designs and Paints' (OCR: '{text}'，等待 {i+1}s)")
+            log_success(f"  ✅ 检测到 'Designs and Paints' (OCR: '{text}'，等待 {i + 1}s)")
             return True
         if i % 2 == 1:
-            log_info(f"  等待 Designs and Paints... #{i+1}: OCR='{text}'")
+            log_info(f"  等待 Designs and Paints... #{i + 1}: OCR='{text}'")
     log_warning(f"  ⚠️ {max_wait}s 内未检测到 'Designs and Paints'")
     return False
 
@@ -53,15 +53,15 @@ def _wait_for_cars_text(hwnd, max_wait=8):
             continue
         h, w = raw_img.shape[:2]
         # "My Cars" 大白字位置（标注工具确认：19-28% 高度, 3-14% 宽度）
-        top_roi = raw_img[int(h * 0.19):int(h * 0.28), int(w * 0.03):int(w * 0.14)]
+        top_roi = raw_img[int(h * 0.19) : int(h * 0.28), int(w * 0.03) : int(w * 0.14)]
         gray = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
-        text = pytesseract.image_to_string(thresh, config='--psm 7').strip().lower()
+        text = pytesseract.image_to_string(thresh, config="--psm 7").strip().lower()
         if "car" in text:
-            log_success(f"  ✅ 检测到 'My Cars' (OCR: '{text}'，等待 {i+1}s)")
+            log_success(f"  ✅ 检测到 'My Cars' (OCR: '{text}'，等待 {i + 1}s)")
             return True
         if i % 2 == 1:
-            log_info(f"  等待 My Cars... #{i+1}: OCR='{text}'")
+            log_info(f"  等待 My Cars... #{i + 1}: OCR='{text}'")
     log_warning(f"  ⚠️ {max_wait}s 内未检测到 'My Cars'")
     return False
 
@@ -78,18 +78,17 @@ def _wait_for_anna_link(hwnd, max_wait=15):
             continue
         h, w = raw_img.shape[:2]
         # ANNA / LINK 在画面底部 (h93-96%, w10-15%)
-        bottom_roi = raw_img[int(h * 0.93):int(h * 0.96), int(w * 0.10):int(w * 0.15)]
+        bottom_roi = raw_img[int(h * 0.93) : int(h * 0.96), int(w * 0.10) : int(w * 0.15)]
         gray = cv2.cvtColor(bottom_roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
-        text = pytesseract.image_to_string(thresh, config='--psm 7').strip().lower()
+        text = pytesseract.image_to_string(thresh, config="--psm 7").strip().lower()
         if "anna" in text or "link" in text:
-            log_success(f"  ✅ 检测到自由漫游界面 (OCR: '{text}'，等待 {i+1}s)")
+            log_success(f"  ✅ 检测到自由漫游界面 (OCR: '{text}'，等待 {i + 1}s)")
             return True
         if i % 2 == 1:
-            log_info(f"  等待自由漫游 (ANNA/LINK)... #{i+1}: OCR='{text}'")
+            log_info(f"  等待自由漫游 (ANNA/LINK)... #{i + 1}: OCR='{text}'")
     log_warning(f"  ⚠️ {max_wait}s 内未检测到 ANNA/LINK")
     return False
-
 
 
 def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, start_row=1):
@@ -112,13 +111,13 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
     else:
         log_info("  遍历模式: 打字机走位（逐列从上到下，复位后右移）")
 
-    MAX_COLUMNS = 200               # 安全上限
-    total_excluded = 0              # 累计跳过的车（仅统计）
-    
+    MAX_COLUMNS = 200  # 安全上限
+    total_excluded = 0  # 累计跳过的车（仅统计）
+
     # --- Impreza 区域检测 ---
     # 车库按品牌排列，Impreza 22B 聚在一起。进入区域后离开即可停止。
-    in_impreza_zone = False         # 是否已进入 Impreza 区域
-    consecutive_non_impreza = 0     # 连续非 Impreza 的单元格数
+    in_impreza_zone = False  # 是否已进入 Impreza 区域
+    consecutive_non_impreza = 0  # 连续非 Impreza 的单元格数
     NON_IMPREZA_EXIT_THRESHOLD = 3  # 连续 3 个非 Impreza 就视为已离开区域
 
     # 快进到起始列：按 Right 移动到 start_col
@@ -130,9 +129,9 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
 
     for col in range(start_col, start_col + MAX_COLUMNS):
         log_info("")
-        log_info(f"{'='*40}")
+        log_info(f"{'=' * 40}")
         log_info(f"  📋 正在扫描第 {col} 列...")
-        log_info(f"{'='*40}")
+        log_info(f"{'=' * 40}")
 
         rows_descended = 0  # 本列向下移动了几行（用于精确复位）
         # 首列从 start_row 开始，后续列从第 1 行开始
@@ -154,23 +153,23 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
 
             cursor_pos = module_ocr.find_cursor_position(resized)
             if cursor_pos is None:
-                log_warning(f"    [行{row+1}] 无法检测到光标")
+                log_warning(f"    [行{row + 1}] 无法检测到光标")
                 break
             cx, cy = cursor_pos
-            log_info(f"    [行{row+1}] 光标位置: ({cx}, {cy})")
+            log_info(f"    [行{row + 1}] 光标位置: ({cx}, {cy})")
 
             # === 空位检测（使用统一函数）===
             is_empty_slot = module_ocr.is_empty_slot(resized, cx, cy)
             if is_empty_slot:
-                log_info(f"    [行{row+1}] 🔲 检测到空位，跳过")
+                log_info(f"    [行{row + 1}] 🔲 检测到空位，跳过")
             if is_empty_slot:
                 if row == 0:
                     # 第 1 行就是空位 → 整列为空，直接跳过本列
-                    log_info(f"    [行{row+1}] 第 1 行即为空位，跳过整列")
+                    log_info(f"    [行{row + 1}] 第 1 行即为空位，跳过整列")
                     break
                 else:
                     # 第 2/3 行是空位 → 网格不规则，品牌区域已扫完
-                    log_info(f"    [行{row+1}] 检测到空位，品牌区域已扫完，停止扫描")
+                    log_info(f"    [行{row + 1}] 检测到空位，品牌区域已扫完，停止扫描")
                     # 先复位再退出
                     if rows_descended > 0:
                         log_info(f"  ⬆️ 复位: 按 {rows_descended} 次 Up 回到第 1 行...")
@@ -182,13 +181,13 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
             if verify_fn(resized, cx, cy):
                 in_impreza_zone = True
                 consecutive_non_impreza = 0
-                log_success(f"    [行{row+1}] ✅ {label} 校验通过！按 A 进入详情... (列{col}, 行{row+1})")
+                log_success(f"    [行{row + 1}] ✅ {label} 校验通过！按 A 进入详情... (列{col}, 行{row + 1})")
                 _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
                 return True, col, row + 1
             else:
                 total_excluded += 1
-                log_info(f"    [行{row+1}] 校验未通过，跳过 (累计跳过: {total_excluded})")
-            
+                log_info(f"    [行{row + 1}] 校验未通过，跳过 (累计跳过: {total_excluded})")
+
             # --- Impreza 区域检测（每个单元格都检测） ---
             # 利用 LEGENDARY 橙色标签作为区域标识：所有 Impreza 22B 都是 LEGENDARY
             # verify_fn 内部已经做过 OCR，这里只用轻量 HSV 颜色检测
@@ -201,7 +200,7 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
                 _card = resized[_y1:_y2, _x1:_x2]
                 if _card.size > 0:
                     _ch, _cw = _card.shape[:2]
-                    _rarity = _card[int(_ch*0.82):int(_ch*0.94), int(_cw*0.04):int(_cw*0.70)]
+                    _rarity = _card[int(_ch * 0.82) : int(_ch * 0.94), int(_cw * 0.04) : int(_cw * 0.70)]
                     if _rarity.size > 0:
                         _hsv = cv2.cvtColor(_rarity, cv2.COLOR_BGR2HSV)
                         _omask = cv2.inRange(_hsv, np.array([10, 100, 100]), np.array([25, 255, 255]))
@@ -214,7 +213,9 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
                             consecutive_non_impreza = 0
                         elif in_impreza_zone:
                             consecutive_non_impreza += 1
-                            log_info(f"    [区域检测] 非 LEGENDARY 卡片 (连续 {consecutive_non_impreza}/{NON_IMPREZA_EXIT_THRESHOLD})")
+                            log_info(
+                                f"    [区域检测] 非 LEGENDARY 卡片 (连续 {consecutive_non_impreza}/{NON_IMPREZA_EXIT_THRESHOLD})"
+                            )
             except Exception:
                 if in_impreza_zone:
                     consecutive_non_impreza += 1
@@ -222,11 +223,11 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
             # 如果不是最后一行，检查下方是否有车再决定是否 Down
             if row < 2:
                 if module_ocr.has_cell_below(resized, cx, cy):
-                    log_info(f"    [行{row+1}] 下方有车，按 D-pad Down...")
+                    log_info(f"    [行{row + 1}] 下方有车，按 D-pad Down...")
                     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.5)
                     rows_descended += 1
                 else:
-                    log_info(f"    [行{row+1}] 下方为空位，停止本列向下扫描")
+                    log_info(f"    [行{row + 1}] 下方为空位，停止本列向下扫描")
                     break
 
         # === 步骤 C: 复位 — 按等量 Up 回到第 1 行 ===
@@ -248,9 +249,11 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, st
     log_info(f"  已扫描 {MAX_COLUMNS} 列，未找到更多 {label}")
     return False, 0, 0
 
+
 # 模块级变量：记住上次加点选车位置
 _last_upgrade_col = 1
 _last_upgrade_row = 1
+
 
 def navigate_to_car_in_garage(hwnd, gamepad, target_keyword="IMPREZA"):
     """选择有 NEW 标签的 Impreza（用于加点），从上次位置继续扫描"""
@@ -262,14 +265,14 @@ def navigate_to_car_in_garage(hwnd, gamepad, target_keyword="IMPREZA"):
 
     log_info(f"  📍 上次位置: 列{_last_upgrade_col}, 行{_last_upgrade_row}")
     result, found_col, found_row = _navigate_garage_grid(
-        hwnd, gamepad, _verify, label="NEW 车",
-        start_col=_last_upgrade_col, start_row=_last_upgrade_row
+        hwnd, gamepad, _verify, label="NEW 车", start_col=_last_upgrade_col, start_row=_last_upgrade_row
     )
     if result:
         _last_upgrade_col = found_col
         _last_upgrade_row = found_row
         log_info(f"  📍 记录位置: 列{found_col}, 行{found_row}")
     return result
+
 
 def reset_upgrade_position():
     """重置加点选车位置（新一轮买车后调用）"""
@@ -279,11 +282,10 @@ def reset_upgrade_position():
     log_info("  📍 加点位置已重置为 列1, 行1")
 
 
-
 def _scan_and_delete_cars(hwnd, gamepad):
     """
     带状态机的车库扫描删除引擎。
-    
+
     使用打字机走位扫描车库网格，找到可删除的车（无 NEW 标签 + B 级 Impreza）后执行删除。
     删除后根据游戏 UI 机制更新光标状态：
       - Row 3 删除 → 光标退到 Row 2（同列）
@@ -292,7 +294,6 @@ def _scan_and_delete_cars(hwnd, gamepad):
     然后恢复扫描位置继续删除下一辆。
     """
     log_info("正在启动带状态机的删车扫描...")
-
 
     MAX_COLUMNS = 40
     consecutive_empty_cols = 0
@@ -323,19 +324,19 @@ def _scan_and_delete_cars(hwnd, gamepad):
             if len(matched) >= module_ocr.IMPREZA_22B_MIN_MATCH:
                 log_success(f"  ✅ 卡片 OCR 确认: 关键词 {len(matched)}/3 {matched}")
             else:
-                log_warning(f"  ⚠️ 卡片 OCR 未匹配 Impreza 22B (命中 {len(matched)}/3 {matched}, OCR: '{card_text[:50]}')，跳过！")
+                log_warning(
+                    f"  ⚠️ 卡片 OCR 未匹配 Impreza 22B (命中 {len(matched)}/3 {matched}, OCR: '{card_text[:50]}')，跳过！"
+                )
                 return False
         except Exception as e:
             log_warning(f"  ⚠️ 卡片 OCR 异常: {e}，安全跳过")
             return False
         return True
 
-
-
     while current_col <= MAX_COLUMNS:
-        log_info(f"\n{'='*40}")
+        log_info(f"\n{'=' * 40}")
         log_info(f"  📋 [删车] 正在扫描第 {current_col} 列...")
-        log_info(f"{'='*40}")
+        log_info(f"{'=' * 40}")
 
         col_has_target = False
 
@@ -385,7 +386,9 @@ def _scan_and_delete_cars(hwnd, gamepad):
                 elif current_row == 1:
                     current_col -= 1
                     current_row = 3
-                log_info(f"  [状态修正] 删除前: (行{old_row}, 列{old_col}) → 光标退到: (行{current_row}, 列{current_col})")
+                log_info(
+                    f"  [状态修正] 删除前: (行{old_row}, 列{old_col}) → 光标退到: (行{current_row}, 列{current_col})"
+                )
 
                 # === 恢复扫描位置 ===
                 if current_row in (1, 2):
@@ -452,8 +455,10 @@ def _scan_and_delete_cars(hwnd, gamepad):
     log_info(f"  已扫描 {MAX_COLUMNS} 列，删车完成。")
     return removed_count
 
+
 def navigate_to_car_for_removal(hwnd, gamepad, target_keyword="IMPREZA"):
     """选择没有 NEW 标签且为 B 级的 Impreza（已加点，可移除）"""
+
     def _verify(resized, cx, cy):
         has_new = module_ocr.check_new_tag_only(resized, cx, cy)
         if has_new:
@@ -469,6 +474,7 @@ def navigate_to_car_for_removal(hwnd, gamepad, target_keyword="IMPREZA"):
 
     result, _, _ = _navigate_garage_grid(hwnd, gamepad, _verify, label="移除车")
     return result
+
 
 def action_remove_single_car(hwnd, gamepad, car_index):
     """
@@ -519,9 +525,9 @@ def navigate_to_main_car(hwnd, gamepad):
 
     for col in range(1, MAX_COLUMNS + 1):
         log_info("")
-        log_info(f"{'='*40}")
+        log_info(f"{'=' * 40}")
         log_info(f"  📋 正在扫描第 {col} 列...")
-        log_info(f"{'='*40}")
+        log_info(f"{'=' * 40}")
 
         col_found_car = False
         rows_descended = 0
@@ -535,16 +541,16 @@ def navigate_to_main_car(hwnd, gamepad):
 
             cursor_pos = module_ocr.find_cursor_position(resized)
             if cursor_pos is None:
-                log_warning(f"    [行{row+1}] 无法检测到光标")
+                log_warning(f"    [行{row + 1}] 无法检测到光标")
                 break
             cx, cy = cursor_pos
-            log_info(f"    [行{row+1}] 光标位置: ({cx}, {cy})")
+            log_info(f"    [行{row + 1}] 光标位置: ({cx}, {cy})")
 
             # 空位检测（使用统一函数）
             is_empty = module_ocr.is_empty_slot(resized, cx, cy)
 
             if is_empty:
-                log_info(f"    [行{row+1}] 🔲 空位，跳过")
+                log_info(f"    [行{row + 1}] 🔲 空位，跳过")
                 if row == 0:
                     break  # 整列空
                 else:
@@ -567,30 +573,34 @@ def navigate_to_main_car(hwnd, gamepad):
                     # 多关键词匹配（使用全局常量）
                     matched = [kw for kw in module_ocr.IMPREZA_22B_KEYWORDS if kw in card_text]
                     if len(matched) >= module_ocr.IMPREZA_22B_MIN_MATCH:
-                        log_success(f"    [行{row+1}] ✅ 卡片 OCR 确认: 关键词 {len(matched)}/3 {matched}")
+                        log_success(f"    [行{row + 1}] ✅ 卡片 OCR 确认: 关键词 {len(matched)}/3 {matched}")
                         is_target_car = True
                     else:
-                        log_warning(f"    [行{row+1}] ⚠️ S2 但非目标车 (命中 {len(matched)}/3 {matched}, OCR: '{card_text[:50]}')，跳过")
+                        log_warning(
+                            f"    [行{row + 1}] ⚠️ S2 但非目标车 (命中 {len(matched)}/3 {matched}, OCR: '{card_text[:50]}')，跳过"
+                        )
                 except Exception as e:
-                    log_warning(f"    [行{row+1}] ⚠️ 卡片 OCR 异常: {e}")
+                    log_warning(f"    [行{row + 1}] ⚠️ 卡片 OCR 异常: {e}")
 
                 if is_target_car:
-                    log_success(f"    [行{row+1}] ✅ 找到主力车（S2 + Impreza 22B）！按 A 进入详情... (列{col}, 行{row+1})")
+                    log_success(
+                        f"    [行{row + 1}] ✅ 找到主力车（S2 + Impreza 22B）！按 A 进入详情... (列{col}, 行{row + 1})"
+                    )
                     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
                     return True, col, row + 1
                 else:
-                    log_info(f"    [行{row+1}] S 级但非目标车，跳过...")
+                    log_info(f"    [行{row + 1}] S 级但非目标车，跳过...")
             else:
-                log_info(f"    [行{row+1}] B 级车，跳过...")
+                log_info(f"    [行{row + 1}] B 级车，跳过...")
 
             # 下一行
             if row < 2:
                 if module_ocr.has_cell_below(resized, cx, cy):
-                    log_info(f"    [行{row+1}] 下方有车，按 D-pad Down...")
+                    log_info(f"    [行{row + 1}] 下方有车，按 D-pad Down...")
                     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.5)
                     rows_descended += 1
                 else:
-                    log_info(f"    [行{row+1}] 下方为空位，停止本列向下扫描")
+                    log_info(f"    [行{row + 1}] 下方为空位，停止本列向下扫描")
                     break
 
         # 复位到第 1 行
@@ -616,10 +626,10 @@ def navigate_to_main_car(hwnd, gamepad):
     log_warning("  ⚠️ 未找到 S1/S2 主力车！")
     return False, 0, 0
 
+
 def action_get_in_car(hwnd, gamepad):
     """在详情页选择 'Get In Car'（第一个选项）并确认"""
     log_info("  Get In Car...")
     time.sleep(1.0)
     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=3.0)
     log_success("  ✅ 已上车！")
-

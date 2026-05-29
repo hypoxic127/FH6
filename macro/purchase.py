@@ -26,6 +26,7 @@ from macro.core import (
 # OCR 辅助函数
 # ==========================================
 
+
 def _ocr_scan_keywords(hwnd, keywords, roi_pct=None, psm=6):
     """
     OCR 扫描画面中是否包含目标关键词。
@@ -57,25 +58,25 @@ def _ocr_scan_keywords(hwnd, keywords, roi_pct=None, psm=6):
     upscaled = cv2.resize(thresh, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
 
     try:
-        data = pytesseract.image_to_data(upscaled, output_type=pytesseract.Output.DICT, config=f'--psm {psm}')
+        data = pytesseract.image_to_data(upscaled, output_type=pytesseract.Output.DICT, config=f"--psm {psm}")
     except Exception as e:
         log_warning(f"OCR image_to_data 异常: {e}")
         return False, "", []
 
-    full_text = " ".join(str(w).strip() for w in data['text'] if str(w).strip()).lower()
+    full_text = " ".join(str(w).strip() for w in data["text"] if str(w).strip()).lower()
     matched_boxes = []
 
-    for i, word in enumerate(data['text']):
+    for i, word in enumerate(data["text"]):
         w_str = str(word).strip().lower()
         if not w_str:
             continue
         for kw in keywords:
             if kw in w_str or is_word_similar(w_str, kw):
                 # 坐标从 2x 放大图换算回 resized 坐标系
-                bx = x1 + data['left'][i] // 2
-                by = y1 + data['top'][i] // 2
-                bw = data['width'][i] // 2
-                bh = data['height'][i] // 2
+                bx = x1 + data["left"][i] // 2
+                by = y1 + data["top"][i] // 2
+                bw = data["width"][i] // 2
+                bh = data["height"][i] // 2
                 matched_boxes.append((bx, by, bw, bh))
                 break
 
@@ -84,7 +85,7 @@ def _ocr_scan_keywords(hwnd, keywords, roi_pct=None, psm=6):
 
 def _check_green_at_boxes(hwnd, boxes, pad=40):
     """检测给定坐标 box 周围是否有绿色选中边框。
-    
+
     OCR 返回的 box 是文字的精确矩形，通常远小于卡片。
     为覆盖卡片边缘的绿色边框，将小 box 扩展为最小 200x150 的卡片级区域。
     """
@@ -93,7 +94,7 @@ def _check_green_at_boxes(hwnd, boxes, pad=40):
         return False
 
     MIN_W, MIN_H = 200, 150  # 卡片最小检测区域
-    for (bx, by, bw, bh) in boxes:
+    for bx, by, bw, bh in boxes:
         # 将小文字 box 扩展到卡片级尺寸（以文字中心为基准）
         if bw < MIN_W:
             cx = bx + bw // 2
@@ -114,6 +115,7 @@ def _check_green_at_boxes(hwnd, boxes, pad=40):
 def _detect_playing(hwnd):
     """使用 StateDetector 单例检测是否在自由漫游驾驶画面。"""
     from module_state_detect import get_detector
+
     resized, _, _, _, _ = capture_screenshot(hwnd)
     if resized is None:
         return False
@@ -124,6 +126,7 @@ def _detect_playing(hwnd):
 def _detect_campaign(hwnd):
     """使用 StateDetector 单例检测是否在 CAMPAIGN 标签页。"""
     from module_state_detect import get_detector
+
     resized, _, _, _, _ = capture_screenshot(hwnd)
     if resized is None:
         return False
@@ -134,6 +137,7 @@ def _detect_campaign(hwnd):
 # ==========================================
 # 五步导航系统（纯 OCR 版）
 # ==========================================
+
 
 def navigate_to_impreza_purchase_screen(hwnd, gamepad):
     """
@@ -203,7 +207,7 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad):
             if resized is not None:
                 # 简单 OCR 检测标签栏是否有菜单关键词
                 h, w = resized.shape[:2]
-                tab_roi = resized[int(h*0.14):int(h*0.18), int(w*0.09):int(w*0.57)]
+                tab_roi = resized[int(h * 0.14) : int(h * 0.18), int(w * 0.09) : int(w * 0.57)]
                 tab_gray = cv2.cvtColor(tab_roi, cv2.COLOR_BGR2GRAY)
                 _, tab_thresh = cv2.threshold(tab_gray, 150, 255, cv2.THRESH_BINARY)
                 tab_text = pytesseract.image_to_string(tab_thresh).strip().lower()
@@ -340,12 +344,13 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad):
         rh, rw = resized.shape[:2]
         # 精确 Subaru 文字 ROI，内缩 8px 去掉绿色选中边框干扰
         pad_in = 8
-        sub_roi = resized[int(rh * 0.68) + pad_in:int(rh * 0.74) - pad_in,
-                          int(rw * 0.68) + pad_in:int(rw * 0.87) - pad_in]
+        sub_roi = resized[
+            int(rh * 0.68) + pad_in : int(rh * 0.74) - pad_in, int(rw * 0.68) + pad_in : int(rw * 0.87) - pad_in
+        ]
         sub_gray = cv2.cvtColor(sub_roi, cv2.COLOR_BGR2GRAY)
         _, sub_thresh = cv2.threshold(sub_gray, 150, 255, cv2.THRESH_BINARY)
         sub_upscaled = cv2.resize(sub_thresh, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-        sub_text = pytesseract.image_to_string(sub_upscaled, config='--psm 7').strip().lower()
+        sub_text = pytesseract.image_to_string(sub_upscaled, config="--psm 7").strip().lower()
         log_info(f"  Subaru ROI OCR: '{sub_text}'")
 
         if "subaru" in sub_text or "subar" in sub_text:
@@ -408,6 +413,7 @@ def navigate_to_impreza_purchase_screen(hwnd, gamepad):
 # 工具函数
 # ==========================================
 
+
 def is_word_similar(ocr_word, target_keyword):
     """增强鲁棒性的模糊词匹配：子串匹配 + 编辑距离 + 符号容错。"""
     w1 = ocr_word.upper()
@@ -428,12 +434,13 @@ def is_word_similar(ocr_word, target_keyword):
         return True
 
     if len(clean_w1) >= 3 and len(clean_w2) >= 3:
+
         def edit_distance(s1, s2):
             if len(s1) > len(s2):
                 s1, s2 = s2, s1
             distances = range(len(s1) + 1)
             for i2, c2 in enumerate(s2):
-                distances_ = [i2+1]
+                distances_ = [i2 + 1]
                 for i1, c1 in enumerate(s1):
                     if c1 == c2:
                         distances_.append(distances[i1])
@@ -497,15 +504,19 @@ def dynamic_navigate_to_target(template_path, vision_engine, gamepad, hwnd=None,
                 ocr_success = False
                 for psm in [3, 11, 6]:
                     try:
-                        data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT, config=f'--psm {psm}')
-                        for i, word in enumerate(data['text']):
+                        data = pytesseract.image_to_data(
+                            gray, output_type=pytesseract.Output.DICT, config=f"--psm {psm}"
+                        )
+                        for i, word in enumerate(data["text"]):
                             ocr_word = str(word).strip()
                             if not ocr_word:
                                 continue
                             if is_word_similar(ocr_word, target_keyword):
-                                locked_tx = x1 + (data['left'][i] // 3)
-                                locked_ty = y1 + (data['top'][i] // 3)
-                                log_success(f"OCR (PSM {psm}) 检测到 '{data['text'][i]}'！屏幕坐标: ({locked_tx}, {locked_ty})")
+                                locked_tx = x1 + (data["left"][i] // 3)
+                                locked_ty = y1 + (data["top"][i] // 3)
+                                log_success(
+                                    f"OCR (PSM {psm}) 检测到 '{data['text'][i]}'！屏幕坐标: ({locked_tx}, {locked_ty})"
+                                )
                                 ocr_success = True
                                 break
                     except Exception as ocr_err:
@@ -534,7 +545,9 @@ def dynamic_navigate_to_target(template_path, vision_engine, gamepad, hwnd=None,
                 current_tolerance = 30
 
         diff_y = locked_ty - cy
-        log_info(f"  坐标 -> 光标: ({cx}, {cy}) | 目标: ({locked_tx}, {locked_ty}) | 偏差: (dx={diff_x}, dy={diff_y}) (容差: {current_tolerance}px)")
+        log_info(
+            f"  坐标 -> 光标: ({cx}, {cy}) | 目标: ({locked_tx}, {locked_ty}) | 偏差: (dx={diff_x}, dy={diff_y}) (容差: {current_tolerance}px)"
+        )
 
         if abs(diff_x) < current_tolerance and abs(diff_y) < current_tolerance:
             safe_print("目标已锁定！跳出追踪循环")
@@ -542,37 +555,37 @@ def dynamic_navigate_to_target(template_path, vision_engine, gamepad, hwnd=None,
             break
 
         if diff_x > current_tolerance:
-            if last_action == 'DPAD_LEFT':
+            if last_action == "DPAD_LEFT":
                 log_warning("  ⚠️ [死循环防御] 检测到控制震荡！强制锁定！")
                 locked_successfully = True
                 break
             log_info("  ⚡ 目标在右侧，D-pad Right")
             _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT, delay=0)
-            last_action = 'DPAD_RIGHT'
+            last_action = "DPAD_RIGHT"
         elif diff_x < -current_tolerance:
-            if last_action == 'DPAD_RIGHT':
+            if last_action == "DPAD_RIGHT":
                 log_warning("  ⚠️ [死循环防御] 检测到控制震荡！强制锁定！")
                 locked_successfully = True
                 break
             log_info("  ⚡ 目标在左侧，D-pad Left")
             _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT, delay=0)
-            last_action = 'DPAD_LEFT'
+            last_action = "DPAD_LEFT"
         elif diff_y > current_tolerance:
-            if last_action == 'DPAD_UP':
+            if last_action == "DPAD_UP":
                 log_warning("  ⚠️ [死循环防御] 检测到控制震荡！强制锁定！")
                 locked_successfully = True
                 break
             log_info("  ⚡ 目标在下方，D-pad Down")
             _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0)
-            last_action = 'DPAD_DOWN'
+            last_action = "DPAD_DOWN"
         elif diff_y < -current_tolerance:
-            if last_action == 'DPAD_DOWN':
+            if last_action == "DPAD_DOWN":
                 log_warning("  ⚠️ [死循环防御] 检测到控制震荡！强制锁定！")
                 locked_successfully = True
                 break
             log_info("  ⚡ 目标在上方，D-pad Up")
             _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0)
-            last_action = 'DPAD_UP'
+            last_action = "DPAD_UP"
 
         time.sleep(0.5)
 
@@ -612,6 +625,7 @@ def dynamic_navigate_to_target(template_path, vision_engine, gamepad, hwnd=None,
 # 购买宏
 # ==========================================
 
+
 def action_buy_single_car(hwnd, gamepad, car_index):
     """执行单辆车购买：START → Down → A×3。"""
     log_info(f"正在执行购买流程：开始购买第 {car_index}/{CARS_TO_PROCESS} 辆车...")
@@ -623,7 +637,7 @@ def action_buy_single_car(hwnd, gamepad, car_index):
     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=1.0)
 
     for i in range(3):
-        log_info(f"  -> A ({i+1}/3)...")
+        log_info(f"  -> A ({i + 1}/3)...")
         _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=0)
         if i < 2:
             time.sleep(2.0)
