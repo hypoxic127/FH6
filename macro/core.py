@@ -122,16 +122,8 @@ def capture_screenshot(hwnd):
         log_error(f"截图捕获失败: {e}")
         # GDI 句柄可能已损坏，重置 MSS 单例
         try:
-            import utils
-            from utils import get_mss as _reset_check
-
-            if hasattr(utils, "_mss_instance") and utils._mss_instance is not None:
-                log_warning("正在重置 MSS 截图上下文...")
-                try:
-                    utils._mss_instance.close()
-                except Exception:
-                    pass
-                utils._mss_instance = None
+            from engine.utils import reset_mss
+            reset_mss()
         except Exception:
             pass
         return None, cx, cy, cw, ch

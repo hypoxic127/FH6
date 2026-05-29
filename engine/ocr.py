@@ -879,13 +879,9 @@ def check_is_high_class(image, cursor_x, cursor_y):
             log_success(f"[PI 检测] ✓ B 级车辆 (橙色: {orange_pixels} > 蓝色: {blue_pixels})")
             return False
 
-        # 兜底: 两种颜色都少，用蓝色阈值判定
-        is_high = blue_pixels > 50
-        if is_high:
-            log_warning(f"[PI 检测] ⚠ 可能是高级别车辆 (蓝色: {blue_pixels}, 橙色: {orange_pixels})")
-        else:
-            log_success(f"[PI 检测] ✓ B 级车辆 (蓝色: {blue_pixels}, 橙色: {orange_pixels})")
-        return is_high
+        # 兜底: 两种颜色都不明确，保守处理 — 宁可漏删不可误删 S2 主力车
+        log_warning(f"[PI 检测] ⚠ 颜色不明确 (蓝色: {blue_pixels}, 橙色: {orange_pixels})，保守跳过")
+        return True
     except Exception as e:
         log_error(f"check_is_high_class 出错: {e}")
     return False
