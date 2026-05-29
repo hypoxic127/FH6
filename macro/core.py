@@ -36,7 +36,7 @@ STATE_FARM_POINTS = "STATE_FARM_POINTS"   # 阶段 1：自动跑 EventLab 刷到
 
 def _get_mss():
     """Proxy to shared MSS singleton in utils.py"""
-    from utils import get_mss
+    from engine.utils import get_mss
     return get_mss()
 
 # 焦点检查节流（避免每帧 1.5s 的抢焦点延迟）
