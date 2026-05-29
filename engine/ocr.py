@@ -25,6 +25,7 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 
 import os
 import sys
+from collections import Counter
 
 import cv2
 import numpy as np
@@ -86,11 +87,44 @@ EMPTY_SLOT_VARIANCE_THRESHOLD: float = 5.0  # 方差 ≤ 此值视为纯色
 
 
 # ==========================================
+# 通用卡片裁剪
+# ==========================================
+
+
+def crop_card_roi(
+    image: np.ndarray | None, cursor_x: int, cursor_y: int
+) -> np.ndarray | None:
+    """根据光标中心坐标裁剪车辆卡片区域。
+
+    在 1600×900 缩放画面中，以 (cursor_x, cursor_y) 为中心，
+    裁剪 CARD_CROP_W × CARD_CROP_H 大小的矩形区域。
+    坐标会被安全地钳位到图像边界内。
+
+    Args:
+        image: 1600×900 BGR 格式截图，None 时返回 None
+        cursor_x: 光标中心 X 坐标
+        cursor_y: 光标中心 Y 坐标
+
+    Returns:
+        裁剪后的卡片 BGR 图像，无效时返回 None
+    """
+    if image is None or image.size == 0:
+        return None
+    h, w = image.shape[:2]
+    x1 = max(0, cursor_x - CARD_CROP_W // 2)
+    x2 = min(w, cursor_x + CARD_CROP_W // 2)
+    y1 = max(0, cursor_y - CARD_CROP_H // 2)
+    y2 = min(h, cursor_y + CARD_CROP_H // 2)
+    roi = image[y1:y2, x1:x2]
+    return roi if roi.size > 0 else None
+
+
+# ==========================================
 # 一、Tesseract OCR 初始化
 # ==========================================
 
 
-def setup_tesseract():
+def setup_tesseract() -> bool:
     """
     定位并配置 Tesseract OCR 引擎路径。
 
@@ -132,7 +166,7 @@ def setup_tesseract():
 # ==========================================
 
 
-def read_skill_points(img):
+def read_skill_points(img: np.ndarray) -> int | None:
     """
     从游戏画面中 OCR 识别当前的技能点数字。
 
@@ -202,8 +236,6 @@ def read_skill_points(img):
         non_zero = [v for v in results if v > 0]
         if non_zero:
             # 有非零结果时，只在非零结果中投票（OCR 经常把有效数字误读为 0）
-            from collections import Counter
-
             counter = Counter(non_zero)
             most_common_val, most_common_count = counter.most_common(1)[0]
             if most_common_count >= 2:
@@ -243,7 +275,7 @@ def read_skill_points(img):
 # ==========================================
 
 
-def _ocr_card_text(card_img, debug_label="CARD"):
+def _ocr_card_text(card_img: np.ndarray | None, debug_label: str = "CARD") -> str:
     """
     通用卡片文字提取管线（内部函数）。
 
@@ -285,7 +317,7 @@ def _ocr_card_text(card_img, debug_label="CARD"):
 # ==========================================
 
 
-def has_green_selection_border(card_img):
+def has_green_selection_border(card_img: np.ndarray | None) -> bool:
     """
     检测卡片图像是否具有绿色选中高亮边框。
 
@@ -339,7 +371,14 @@ def has_green_selection_border(card_img):
     return False
 
 
-def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
+def has_green_selection_border_padded(
+    image: np.ndarray | None,
+    box_x: int,
+    box_y: int,
+    box_w: int,
+    box_h: int,
+    pad: int = 20,
+) -> bool:
     """
     带外扩边距的绿色选中边框检测（更鲁棒的版本）。
 
@@ -357,18 +396,18 @@ def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
     返回:
         bool: True 表示该区域周围有绿色高亮边框
     """
-    if scene_img is None or scene_img.size == 0:
+    if image is None or image.size == 0:
         return False
     try:
-        scene_h, scene_w, _ = scene_img.shape
+        scene_h, scene_w, _ = image.shape
 
         # 计算带外扩的裁剪坐标（确保不超出画面边界）
-        y1 = max(0, crop_y - pad)
-        y2 = min(scene_h, crop_y + h + pad)
-        x1 = max(0, crop_x - pad)
-        x2 = min(scene_w, crop_x + w + pad)
+        y1 = max(0, box_y - pad)
+        y2 = min(scene_h, box_y + box_h + pad)
+        x1 = max(0, box_x - pad)
+        x2 = min(scene_w, box_x + box_w + pad)
 
-        crop_padded = scene_img[y1:y2, x1:x2]
+        crop_padded = image[y1:y2, x1:x2]
         hsv = cv2.cvtColor(crop_padded, cv2.COLOR_BGR2HSV)
 
         # 在整个外扩区域中统计绿色像素（不区分边框/内容）
@@ -397,7 +436,7 @@ def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
 # ==========================================
 
 
-def find_cursor_position(image):
+def find_cursor_position(image: np.ndarray | None) -> tuple[int, int] | None:
     """
     在 1600×900 缩放画面中定位 UI 焦点光标的中心坐标。
 
@@ -424,17 +463,19 @@ def find_cursor_position(image):
     if image is None or image.size == 0:
         return None
     try:
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        img_h, img_w = image.shape[:2]
+        # PERF-4: 先裁剪有效区域再做 HSV 转换，减少 ~35% 像素量
+        # 左侧 21% 是详情面板，顶部 19% 是标签栏 — 不含车库网格光标
+        crop_x_offset = int(img_w * 0.21)
+        crop_y_offset = int(img_h * 0.19)
+        roi = image[crop_y_offset:, crop_x_offset:]
+
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         # 亮黄绿色的 HSV 阈值范围（适用于地平线 UI 高亮绿色边框）
         lower_green = HSV_GREEN_CURSOR_LOWER
         upper_green = HSV_GREEN_CURSOR_UPPER
 
         mask = cv2.inRange(hsv, lower_green, upper_green)
-
-        # 屏蔽左侧详情面板 & 顶部标签栏，防止面板绿色 UI 与卡片高亮边框融合
-        img_h, img_w = mask.shape[:2]
-        mask[:, : int(img_w * 0.21)] = 0  # 左侧详情面板 (X=330px)
-        mask[: int(img_h * 0.19), :] = 0  # 顶部标签栏 (Y=169px)
 
         # 闭运算（先膨胀后腐蚀）：将高亮边框的 4 条细线桥接为完整矩形轮廓
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
@@ -455,8 +496,9 @@ def find_cursor_position(image):
 
         for contour in valid_contours:
             x, y, w, h = cv2.boundingRect(contour)
-            cx = x + w // 2
-            cy = y + h // 2
+            # 加回裁剪偏移，映射回原始 1600×900 坐标系
+            cx = x + w // 2 + crop_x_offset
+            cy = y + h // 2 + crop_y_offset
             area = cv2.contourArea(contour)
 
             # === 形状校验：排除非车库网格元素（标签栏、菜单标题等） ===
@@ -507,7 +549,7 @@ def find_cursor_position(image):
         x, y, w, h = cv2.boundingRect(top)
         try:
             safe_print(
-                f"{Fore.RED}[DYNAMIC VISION]{Style.RESET_ALL} 所有轮廓均未通过车库网格校验！最大轮廓: {w}x{h} at ({x + w // 2}, {y + h // 2}), 面积={cv2.contourArea(top):.0f}"
+                f"{Fore.RED}[DYNAMIC VISION]{Style.RESET_ALL} 所有轮廓均未通过车库网格校验！最大轮廓: {w}x{h} at ({x + w // 2 + crop_x_offset}, {y + h // 2 + crop_y_offset}), 面积={cv2.contourArea(top):.0f}"
             )
         except Exception:
             pass
@@ -526,7 +568,12 @@ def find_cursor_position(image):
 _template_cache = {}
 
 
-def find_target_car(image, template_path, cursor_pos=None, excluded_positions=None):
+def find_target_car(
+    image: np.ndarray | None,
+    template_path: str,
+    cursor_pos: tuple[int, int] | None = None,
+    excluded_positions: list[tuple[int, int]] | None = None,
+) -> tuple[int, int, float] | str | None:
     """
     使用 cv2.matchTemplate 在画面中定位目标车辆。
 
@@ -647,7 +694,12 @@ def find_target_car(image, template_path, cursor_pos=None, excluded_positions=No
 # ==========================================
 
 
-def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
+def verify_new_target_car(
+    image: np.ndarray | None,
+    cursor_x: int,
+    cursor_y: int,
+    target_keyword: str = "IMPREZA",
+) -> bool:
     """
     双重目标锁定校验机制：OCR 车名 + NEW 标签检测。
 
@@ -677,17 +729,8 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
     if image is None or image.size == 0:
         return False
     try:
-        h, w, _ = image.shape
-
-        # 裁剪光标中心附近的卡片区域
-        crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
-        x1 = max(0, cursor_x - crop_w // 2)
-        x2 = min(w, cursor_x + crop_w // 2)
-        y1 = max(0, cursor_y - crop_h // 2)
-        y2 = min(h, cursor_y + crop_h // 2)
-
-        roi = image[y1:y2, x1:x2]
-        if roi.size == 0:
+        roi = crop_card_roi(image, cursor_x, cursor_y)
+        if roi is None:
             return False
 
         # --- 校验 1: OCR 多关键词全命中检查 ---
@@ -767,7 +810,7 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
     return False
 
 
-def check_new_tag_only(image, cursor_x, cursor_y):
+def check_new_tag_only(image: np.ndarray | None, cursor_x: int, cursor_y: int) -> bool:
     """
     仅检测 NEW 黄色标签（跳过 OCR 车名校验的轻量版本）。
 
@@ -788,16 +831,8 @@ def check_new_tag_only(image, cursor_x, cursor_y):
     if image is None or image.size == 0:
         return False
     try:
-        h, w, _ = image.shape
-        # 裁剪光标中心附近的卡片区域
-        crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
-        x1 = max(0, cursor_x - crop_w // 2)
-        x2 = min(w, cursor_x + crop_w // 2)
-        y1 = max(0, cursor_y - crop_h // 2)
-        y2 = min(h, cursor_y + crop_h // 2)
-
-        roi = image[y1:y2, x1:x2]
-        if roi.size == 0:
+        roi = crop_card_roi(image, cursor_x, cursor_y)
+        if roi is None:
             return False
 
         # NEW 标签在卡片右侧 → 高度 71%-82%、宽度 82%-96%
@@ -822,7 +857,7 @@ def check_new_tag_only(image, cursor_x, cursor_y):
     return False
 
 
-def check_is_high_class(image, cursor_x, cursor_y):
+def check_is_high_class(image: np.ndarray | None, cursor_x: int, cursor_y: int) -> bool:
     """
     检测当前卡片的车辆是否为高级别（S1/S2 等）。
 
@@ -844,15 +879,8 @@ def check_is_high_class(image, cursor_x, cursor_y):
     if image is None or image.size == 0:
         return False
     try:
-        h, w, _ = image.shape
-        crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
-        x1 = max(0, cursor_x - crop_w // 2)
-        x2 = min(w, cursor_x + crop_w // 2)
-        y1 = max(0, cursor_y - crop_h // 2)
-        y2 = min(h, cursor_y + crop_h // 2)
-
-        card = image[y1:y2, x1:x2]
-        if card.size == 0:
+        card = crop_card_roi(image, cursor_x, cursor_y)
+        if card is None:
             return False
 
         card_h, card_w = card.shape[:2]
@@ -896,7 +924,14 @@ def check_is_high_class(image, cursor_x, cursor_y):
 # ==========================================
 
 
-def read_text_in_roi(image, x1, y1, x2, y2, whitelist=None):
+def read_text_in_roi(
+    image: np.ndarray | None,
+    x1: int,
+    y1: int,
+    x2: int,
+    y2: int,
+    whitelist: str | None = None,
+) -> str:
     """
     在指定的 ROI（Region of Interest）矩形区域内执行 OCR 文字识别。
 
@@ -956,7 +991,7 @@ def read_text_in_roi(image, x1, y1, x2, y2, whitelist=None):
 # ==========================================
 
 
-def has_cell_below(image, cursor_x, cursor_y):
+def has_cell_below(image: np.ndarray | None, cursor_x: int, cursor_y: int) -> bool:
     """
     检测光标下方一行位置是否存在车辆卡片（非空位）。
 
