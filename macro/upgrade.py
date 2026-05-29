@@ -12,6 +12,7 @@ from utils import press_button as _press_button
 from macro.core import capture_screenshot, capture_raw_screenshot
 import pytesseract
 import re
+from module_ocr import DEBUG_WRITE_FILES
 
 def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
     """
@@ -75,20 +76,58 @@ def action_upgrade_car_skills(hwnd, gamepad, min_points=30):
             h, w = raw_img.shape[:2]
             ocr_results = []
 
-            # 窄 ROI: 只裁数字区域 (h85-88%, w36-38%)
-            roi = raw_img[int(h * 0.85):int(h * 0.88), int(w * 0.36):int(w * 0.38)]
-            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+            # ROI: 数字区域 (h85-88%, w35-38.5%)
+            roi = raw_img[int(h * 0.85):int(h * 0.88), int(w * 0.35):int(w * 0.385)]
 
-            # 两种阈值 × PSM 7，共 2 次 OCR 投票
-            for tname, thresh_img in [
-                ("t100", cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)[1]),
-                ("otsu", cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]),
-            ]:
-                up = cv2.resize(thresh_img, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
-                text = pytesseract.image_to_string(up, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
-                nums = re.findall(r'\d+', text)
-                if nums:
-                    ocr_results.append(int(nums[0]))
+            if roi.size > 0:
+                gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+                # === 主力管线: 灰度阈值（实测最稳定） ===
+                pipelines = []
+
+                # 1. 灰度 threshold 150（test_from_state 测试14验证通过）
+                _, t150 = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+                pipelines.append(("gray_t150", t150))
+
+                # 2. 灰度 threshold 160
+                _, t160 = cv2.threshold(gray, 160, 255, cv2.THRESH_BINARY)
+                pipelines.append(("gray_t160", t160))
+
+                # 3. Otsu 自适应阈值
+                _, t_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                pipelines.append(("gray_otsu", t_otsu))
+
+                # 4. HSV 黄色通道（放宽阈值 + 膨胀增粗笔画）
+                hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+                yellow_mask = cv2.inRange(hsv,
+                                          np.array([15, 40, 100]),
+                                          np.array([45, 255, 255]))
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+                yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, kernel)
+                # 膨胀 1 次增粗抗锯齿导致的细笔画
+                yellow_mask = cv2.dilate(yellow_mask, kernel, iterations=1)
+                pipelines.append(("hsv_yellow", yellow_mask))
+
+                # 调试输出
+                if DEBUG_WRITE_FILES:
+                    cv2.imwrite("debug_ap_roi_raw.png", roi)
+                    cv2.imwrite("debug_ap_roi_gray_t150.png", t150)
+                    cv2.imwrite("debug_ap_roi_yellow_mask.png", yellow_mask)
+
+                # 对每个管线执行 OCR（PSM 7 单行模式）
+                for label, binary_img in pipelines:
+                    padded = cv2.copyMakeBorder(binary_img, 20, 20, 20, 20,
+                                                cv2.BORDER_CONSTANT, value=0)
+                    up = cv2.resize(padded, None, fx=3, fy=3,
+                                    interpolation=cv2.INTER_CUBIC)
+                    up_inv = cv2.bitwise_not(up)
+                    text = pytesseract.image_to_string(
+                        up_inv,
+                        config='--psm 7 -c tessedit_char_whitelist=0123456789'
+                    ).strip()
+                    nums = re.findall(r'\d+', text)
+                    if nums:
+                        ocr_results.append(int(nums[0]))
 
             # 投票（平票取最大值：OCR 更容易漏掉前导数字）
             if ocr_results:

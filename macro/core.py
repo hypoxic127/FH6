@@ -33,7 +33,6 @@ STATE_TRASH_CARS = "STATE_TRASH_CARS"     # 阶段 4：移除已升级的 Imprez
 STATE_FARM_POINTS = "STATE_FARM_POINTS"   # 阶段 1：自动跑 EventLab 刷到 999 技能点
 
 # MSS singleton - use shared instance from utils to avoid duplicate GDI handles
-_get_mss = None  # will be set after import
 
 def _get_mss():
     """Proxy to shared MSS singleton in utils.py"""
