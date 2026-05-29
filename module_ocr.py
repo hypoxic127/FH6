@@ -6,8 +6,6 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 
   1. OCR 文字识别
      - read_skill_points(): 读取技能点数字（多 PSM 投票 + 零技能点保底）
-     - verify_journal_text / verify_navigator_text / verify_car_collection_text / verify_impreza_text:
-       针对特定 UI 元素的 OCR 严格校验
      - read_text_in_roi(): 通用 ROI 区域 OCR
 
   2. 模板匹配 + 目标定位
@@ -16,6 +14,7 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 
   3. 颜色空间检测
      - has_green_selection_border(): 检测 Forza 高亮选中的绿色边框
+     - has_green_selection_border_padded(): 带外扩的绿色边框检测
      - find_cursor_position(): 检测 UI 光标（亮黄绿色焦点框）的中心坐标
      - verify_new_target_car(): 双重校验（OCR 车名 + HSV 检测 NEW 黄色标签）
      - check_is_high_class(): 通过紫色 PI 徽章检测 S1/S2 级别车辆
@@ -52,8 +51,8 @@ HSV_GREEN_BORDER_LOWER = np.array([35, 100, 40])
 HSV_GREEN_BORDER_UPPER = np.array([85, 255, 255])
 
 # 绿色光标阈值（用于检测 UI 焦点框，比边框阈值更宽松）
-HSV_GREEN_CURSOR_LOWER = np.array([35, 80, 80])
-HSV_GREEN_CURSOR_UPPER = np.array([85, 255, 255])
+HSV_GREEN_CURSOR_LOWER = np.array([30, 200, 200])
+HSV_GREEN_CURSOR_UPPER = np.array([45, 255, 255])
 
 # 黄色 NEW 标签阈值（用于检测车辆卡片上的 "NEW" 标记）
 # H=20-30 对应纯黄色范围
@@ -64,8 +63,24 @@ HSV_YELLOW_NEW_UPPER = np.array([30, 255, 255])
 # 卡片裁剪尺寸常量
 # ==========================================
 # 车库网格中单张车辆卡片的裁剪区域大小（以光标中心为基准）
-CARD_CROP_W = 350  # 卡片裁剪宽度（像素）
-CARD_CROP_H = 300  # 卡片裁剪高度（像素）
+CARD_CROP_W = 284  # 卡片裁剪宽度（像素）— 与实际高亮边框匹配
+CARD_CROP_H = 217  # 卡片裁剪高度（像素）— 与实际高亮边框匹配
+
+# ==========================================
+# 目标车辆识别关键词（全局唯一真相源）
+# ==========================================
+# 1998 Subaru Impreza 22B-STI Version 的独特特征关键词
+# "preza" 而非 "impreza"：CARD_CROP 左边缘裁切导致 OCR 读成 "apreza"/"vipreza"
+# "22b" 始终稳定命中
+# "1998" OCR 常误读为 "1905"/"1945"，改用 "sti" 作为第三标识
+IMPREZA_22B_KEYWORDS: list[str] = ["preza", "22b", "sti"]
+IMPREZA_22B_MIN_MATCH: int = 2  # 至少命中 2/3 个才算确认
+
+# ==========================================
+# 空位检测阈值
+# ==========================================
+EMPTY_SLOT_BRIGHTNESS_THRESHOLD: float = 50.0  # 亮度 ≤ 此值视为暗区
+EMPTY_SLOT_VARIANCE_THRESHOLD: float = 5.0     # 方差 ≤ 此值视为纯色
 
 
 # ==========================================
@@ -135,16 +150,12 @@ def read_skill_points(img):
     """
     h, w, _ = img.shape
     
-    # 基于 2560×1440 标准分辨率的百分比坐标计算裁剪区域
-    # 技能点数字位于画面的左下方区域
-    # 扩大裁切范围以防止最后一位数字被截断（原宽度 65px → 95px）
-    y1_pct, y2_pct = 1040 / 1440, 1090 / 1440
-    x1_pct, x2_pct = 720 / 2560, 815 / 2560
-    
-    crop_y1 = int(y1_pct * h)
-    crop_y2 = int(y2_pct * h)
-    crop_x1 = int(x1_pct * w)
-    crop_x2 = int(x2_pct * w)
+    # 技能点数字位于暂停菜单 Car Mastery 区域下方（蓝底黑字）
+    # 手动标注确认：h: 73%-76%, w: 28%-31%
+    crop_y1 = int(h * 0.73)
+    crop_y2 = int(h * 0.76)
+    crop_x1 = int(w * 0.28)
+    crop_x2 = int(w * 0.31)
     
     roi = img[crop_y1:crop_y2, crop_x1:crop_x2]
     if roi.size == 0:
@@ -154,14 +165,13 @@ def read_skill_points(img):
     if DEBUG_WRITE_FILES:
         cv2.imwrite("debug_skill_points_roi.png", roi)
         
-    # 图像预处理管线：灰度化 → Otsu 阈值 → 加边距 → 3 倍放大
+    # 图像预处理：蓝底黑字 → 灰度反转 → Otsu 阈值
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    inverted = cv2.bitwise_not(gray)  # 黑字变白字，蓝底变深底
+    _, thresh = cv2.threshold(inverted, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
-    # 使用 Otsu 自适应阈值代替固定阈值，能更好地处理不同亮度条件下的画面
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # 加大边距（30px）+ 放大 3 倍：小字体在低分辨率下容易被 Tesseract 忽略
-    padded = cv2.copyMakeBorder(thresh, 30, 30, 30, 30, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+    # 加大边距（30px）+ 放大 3 倍
+    padded = cv2.copyMakeBorder(thresh, 30, 30, 30, 30, cv2.BORDER_CONSTANT, value=[0, 0, 0])
     upscaled = cv2.resize(padded, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
     
     if DEBUG_WRITE_FILES:
@@ -261,23 +271,8 @@ def _ocr_card_text(card_img, debug_label="CARD"):
 
 
 # ==========================================
-# 四、UI 元素 OCR 校验函数
+# 四、绿色选中边框检测
 # ==========================================
-# 以下函数用于五步导航系统中的每一步精确校验，
-# 确保模板匹配到的位置确实是目标 UI 元素。
-
-def verify_journal_text(card_img):
-    """
-    校验裁剪的卡片图像是否包含 "collection" 和 "journal" 文字。
-    用于五步导航第一步：确认 Collection Journal 卡片。
-    """
-    text = _ocr_card_text(card_img, "JOURNAL")
-    if not text:
-        return False
-    has_collection = ("collection" in text) or ("collect" in text)
-    has_journal = ("journal" in text) or ("journ" in text)
-    return has_collection and has_journal
-
 
 def has_green_selection_border(card_img):
     """
@@ -321,24 +316,15 @@ def has_green_selection_border(card_img):
         
         # 调试输出绿色像素计数
         try:
-            safe_print(f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 边缘绿色边框像素点计数: {green_pixel_count} / 1500 (阈值)")
+            safe_print(f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 边缘绿色边框像素点计数: {green_pixel_count} / 800 (阈值)")
         except Exception:
             pass
             
-        return green_pixel_count >= 1500
+        return green_pixel_count >= 800
     except Exception as e:
         log_error(f"Error checking green selection border: {e}")
     return False
 
-def verify_navigator_text(card_img):
-    """
-    校验裁剪的卡片图像是否包含 "navigator" 文字。
-    用于五步导航第二步：确认 Navigator 卡片。
-    """
-    text = _ocr_card_text(card_img, "NAVIGATOR")
-    if not text:
-        return False
-    return "navigator" in text or "navig" in text
 
 def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
     """
@@ -347,12 +333,12 @@ def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
     与 has_green_selection_border 的区别：
     - 不是在裁剪后的卡片图上检测，而是在原始场景图上检测
     - 在匹配位置周围额外扩展 pad 像素，覆盖模板裁剪偏移导致的边框遗漏
-    - 更适合模板匹配后的二次验证
+    - 更适合 OCR 定位后的二次验证
 
     参数:
         scene_img: 完整的 1600×900 场景截图
-        crop_x, crop_y: 模板匹配位置的左上角坐标
-        w, h: 模板的宽度和高度
+        crop_x, crop_y: 目标位置的左上角坐标
+        w, h: 目标区域的宽度和高度
         pad: 外扩边距（默认 30 像素）
 
     返回:
@@ -381,34 +367,14 @@ def has_green_selection_border_padded(scene_img, crop_x, crop_y, w, h, pad=30):
         
         # 调试输出
         try:
-            safe_print(f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 区域(含外扩边框)绿色高亮像素点计数: {green_pixel_count} / 1500 (阈值)")
+            safe_print(f"{Fore.GREEN}[BORDER DEBUG]{Style.RESET_ALL} 区域(含外扩边框)绿色高亮像素点计数: {green_pixel_count} / 800 (阈值)")
         except Exception:
             pass
             
-        return green_pixel_count >= 1500
+        return green_pixel_count >= 800
     except Exception as e:
         log_error(f"Error checking padded green selection border: {e}")
     return False
-
-def verify_car_collection_text(card_img):
-    """
-    校验裁剪的卡片图像是否包含 "collection" 文字。
-    用于五步导航第三步：确认 Car Collection 卡片。
-    """
-    text = _ocr_card_text(card_img, "CAR_COLLECTION")
-    if not text:
-        return False
-    return "collection" in text
-
-def verify_impreza_text(card_img):
-    """
-    校验裁剪的卡片图像是否包含 "impreza" 文字。
-    用于五步导航第五步：确认 Impreza 卡片。
-    """
-    text = _ocr_card_text(card_img, "IMPREZA")
-    if not text:
-        return False
-    return "impreza" in text or "imprez" in text
 
 
 # ==========================================
@@ -448,7 +414,16 @@ def find_cursor_position(image):
         upper_green = HSV_GREEN_CURSOR_UPPER
         
         mask = cv2.inRange(hsv, lower_green, upper_green)
-        
+
+        # 屏蔽左侧详情面板 & 顶部标签栏，防止面板绿色 UI 与卡片高亮边框融合
+        img_h, img_w = mask.shape[:2]
+        mask[:, :int(img_w * 0.21)] = 0           # 左侧详情面板 (X=330px)
+        mask[:int(img_h * 0.19), :] = 0            # 顶部标签栏 (Y=169px)
+
+        # 闭运算（先膨胀后腐蚀）：将高亮边框的 4 条细线桥接为完整矩形轮廓
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
         # 寻找绿色区域的轮廓
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
@@ -681,7 +656,9 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
         if roi.size == 0:
             return False
             
-        # --- 校验 1: OCR 文字检查 ---
+        # --- 校验 1: OCR 多关键词全命中检查 ---
+        # 1998 Subaru Impreza 22B-STi Version 的独特特征关键词
+        # 要求至少命中 2 个才算锁定，避免误选其它 Subaru 车型
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
         padded = cv2.copyMakeBorder(thresh, 20, 20, 20, 20, cv2.BORDER_CONSTANT, value=[255, 255, 255])
@@ -689,32 +666,17 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
         
         text = pytesseract.image_to_string(upscaled).strip().lower()
         
-        # 部分匹配策略：车名太长会在 UI 里滚动显示，OCR 只能捕到片段
-        # 使用滑动窗口检查关键字的任意 4 字符子串是否出现在 OCR 文本中
-        keyword_lower = target_keyword.lower()
-        has_keyword = keyword_lower in text  # 先尝试完整匹配
-        if not has_keyword:
-            # 滑动窗口部分匹配（最少 4 字符片段）
-            frag_len = min(4, len(keyword_lower))
-            for i in range(len(keyword_lower) - frag_len + 1):
-                fragment = keyword_lower[i:i + frag_len]
-                if fragment in text:
-                    has_keyword = True
-                    safe_print(f"{Fore.GREEN}  [部分匹配] 在 OCR 文本中找到关键字片段 '{fragment}'{Style.RESET_ALL}")
-                    break
-        if not has_keyword:
-            # 备选关键字检查：车辆相关的短关键字
-            alt_keywords = ["22b", "sti", "subaru"]
-            for alt in alt_keywords:
-                if alt in text:
-                    has_keyword = True
-                    safe_print(f"{Fore.GREEN}  [备选匹配] 在 OCR 文本中找到备选关键字 '{alt}'{Style.RESET_ALL}")
-                    break
+        # 目标车特征关键词匹配（使用全局常量）
+        matched_kws = [kw for kw in IMPREZA_22B_KEYWORDS if kw in text]
+        has_keyword = len(matched_kws) >= IMPREZA_22B_MIN_MATCH
+        
+        if has_keyword:
+            safe_print(f"{Fore.GREEN}  [多关键词命中] 匹配 {len(matched_kws)}/3: {matched_kws}{Style.RESET_ALL}")
         
         # --- 校验 2: HSV 颜色检查（寻找 'NEW' 黄色标签） ---
-        # NEW 标签位于卡片右侧 → 高度 65%-73%、宽度 76%-87%
+        # NEW 标签位于卡片右侧 → 高度 71%-82%、宽度 82%-96%
         roi_h, roi_w = roi.shape[:2]
-        roi_bottom = roi[int(roi_h*0.65):int(roi_h*0.73), int(roi_w*0.76):int(roi_w*0.87)]
+        roi_bottom = roi[int(roi_h*0.71):int(roi_h*0.82), int(roi_w*0.82):int(roi_w*0.96)]
         hsv_roi = cv2.cvtColor(roi_bottom, cv2.COLOR_BGR2HSV)
         lower_yellow = HSV_YELLOW_NEW_LOWER
         upper_yellow = HSV_YELLOW_NEW_UPPER
@@ -724,22 +686,41 @@ def verify_new_target_car(image, cursor_x, cursor_y, target_keyword="IMPREZA"):
         
         has_new_tag = yellow_pixels > 300
         
-        # --- 综合判断 ---
-        if has_keyword and has_new_tag:
-            log_success(f"[锁定成功] 双重校验通过！车名包含 '{target_keyword}' 且检测到 'NEW' 标签 (黄色像素: {yellow_pixels} > 300)")
+        # --- 校验 3: LEGENDARY 橙色稀有度标签检测 ---
+        # 1998 Impreza 22B 固定为 LEGENDARY（橙色底色），COMMON/RARE/EPIC 不是目标车
+        # 稀有度标签区域: 卡片高度 82%-94%、宽度 4%-70%
+        rarity_roi = roi[int(roi_h*0.82):int(roi_h*0.94), int(roi_w*0.04):int(roi_w*0.70)]
+        if rarity_roi.size > 0:
+            hsv_rarity = cv2.cvtColor(rarity_roi, cv2.COLOR_BGR2HSV)
+            # 橙色 HSV: H=10-25, S>100, V>100
+            orange_mask = cv2.inRange(hsv_rarity, np.array([10, 100, 100]), np.array([25, 255, 255]))
+            orange_pixels = cv2.countNonZero(orange_mask)
+            has_legendary = orange_pixels > 200
+        else:
+            orange_pixels = 0
+            has_legendary = False
+        
+        # --- 综合判断（三重校验） ---
+        if has_keyword and has_new_tag and has_legendary:
+            log_success(f"[锁定成功] 三重校验通过！关键词 {len(matched_kws)}/3 {matched_kws} + NEW标签 ({yellow_pixels}px) + LEGENDARY ({orange_pixels}px)")
             return True
         else:
             # 打印失败原因（方便调试）
-            log_warning(f"[锁定失败] 双重锁校验未全部通过:")
+            log_warning(f"[锁定失败] 三重校验未全部通过:")
             if not has_keyword:
-                log_warning(f"  ❌ 原因1：文字不匹配 (期望 '{target_keyword}', 实际OCR: '{text.replace(chr(10), ' ')}')")
+                log_warning(f"  ❌ 原因1：关键词不足 (命中 {len(matched_kws)}/3 {matched_kws}, 需≥2, OCR: '{text.replace(chr(10), ' ')}')")
             else:
-                log_success(f"  ✓ 检查1：文字匹配通过 ('{target_keyword}')")
+                log_success(f"  ✓ 检查1：关键词命中 {len(matched_kws)}/3 {matched_kws}")
                 
             if not has_new_tag:
-                log_warning(f"  ❌ 原因2：没有检测到 'NEW' 标签 (黄色像素点数: {yellow_pixels} <= 300)，该车可能已经加过点！")
+                log_warning(f"  ❌ 原因2：没有检测到 'NEW' 标签 (黄色像素: {yellow_pixels} <= 300)")
             else:
-                log_success(f"  ✓ 检查2：检测到 'NEW' 标签 (黄色像素点数: {yellow_pixels})")
+                log_success(f"  ✓ 检查2：检测到 'NEW' 标签 (黄色像素: {yellow_pixels})")
+
+            if not has_legendary:
+                log_warning(f"  ❌ 原因3：不是 LEGENDARY (橙色像素: {orange_pixels} <= 200)")
+            else:
+                log_success(f"  ✓ 检查3：LEGENDARY 橙色标签 (橙色像素: {orange_pixels})")
                 
             return False
             
@@ -780,9 +761,9 @@ def check_new_tag_only(image, cursor_x, cursor_y):
         if roi.size == 0:
             return False
         
-        # NEW 标签在卡片右侧 → 高度 65%-73%、宽度 76%-87%
+        # NEW 标签在卡片右侧 → 高度 71%-82%、宽度 82%-96%
         roi_h, roi_w = roi.shape[:2]
-        roi_bottom = roi[int(roi_h*0.65):int(roi_h*0.73), int(roi_w*0.76):int(roi_w*0.87)]
+        roi_bottom = roi[int(roi_h*0.71):int(roi_h*0.82), int(roi_w*0.82):int(roi_w*0.96)]
         hsv_roi = cv2.cvtColor(roi_bottom, cv2.COLOR_BGR2HSV)
         lower_yellow = HSV_YELLOW_NEW_LOWER
         upper_yellow = HSV_YELLOW_NEW_UPPER
@@ -833,9 +814,9 @@ def check_is_high_class(image, cursor_x, cursor_y):
             return False
         
         card_h, card_w = card.shape[:2]
-        # PI 徽章: 卡片高度 73%-82%、宽度 67%-87% 区域
+        # PI 徽章: 卡片高度 82%-94%、宽度 71%-96% 区域
         # 只看右侧 PI 徽章 (S2/B)，避开左侧 LEGENDARY 金色标签和右侧越界
-        badge = card[int(card_h*0.73):int(card_h*0.82), int(card_w*0.67):int(card_w*0.87)]
+        badge = card[int(card_h*0.82):int(card_h*0.94), int(card_w*0.71):int(card_w*0.96)]
         
         hsv = cv2.cvtColor(badge, cv2.COLOR_BGR2HSV)
         
@@ -961,11 +942,11 @@ def has_cell_below(image, cursor_x, cursor_y):
         card_x1 = max(0, cursor_x - crop_w // 2)
         card_y1 = max(0, cursor_y - crop_h // 2)
         
-        # 采样区域: h87%-153%, w13%-88%
-        sy1 = max(0, int(card_y1 + crop_h * 0.87))
-        sy2 = min(h, int(card_y1 + crop_h * 1.53))
-        sx1 = max(0, int(card_x1 + crop_w * 0.13))
-        sx2 = min(w, int(card_x1 + crop_w * 0.88))
+        # 采样区域: h101%-192%, w4%-97%
+        sy1 = max(0, int(card_y1 + crop_h * 1.01))
+        sy2 = min(h, int(card_y1 + crop_h * 1.92))
+        sx1 = max(0, int(card_x1 + crop_w * 0.04))
+        sx2 = min(w, int(card_x1 + crop_w * 0.97))
         
         # 超出画面底部 → 没有下一行
         if sy1 >= h - 30:
@@ -990,4 +971,56 @@ def has_cell_below(image, cursor_x, cursor_y):
     except Exception as e:
         log_error(f"has_cell_below 检测出错: {e}")
     return False
+
+
+# ==========================================
+# 十、车库网格空位检测（统一版）
+# ==========================================
+
+def is_empty_slot(image: np.ndarray, cursor_x: int, cursor_y: int) -> bool:
+    """
+    检测当前光标所在的车库卡片是否为空位。
+
+    通过采样当前卡片下半部分区域（CARD_CROP h87%-153%, w13%-88%）的
+    亮度和方差来判断：
+    - 空位背景：亮度 ≤ 50 且方差 ≤ 5（几乎纯色深灰）
+    - 车辆卡片：亮度 > 50 或方差 > 5（有图像/文字内容）
+
+    此函数是所有车库网格扫描模块的统一空位检测入口，
+    替代之前分散在 garage.py 中的 4 处重复内联实现。
+
+    Args:
+        image: 1600×900 BGR 格式截图
+        cursor_x: 当前光标中心 X 坐标
+        cursor_y: 当前光标中心 Y 坐标
+
+    Returns:
+        bool: True = 空位, False = 有车辆卡片
+    """
+    if image is None or image.size == 0:
+        return True
+    try:
+        crop_w, crop_h = CARD_CROP_W, CARD_CROP_H
+        card_x1 = max(0, cursor_x - crop_w // 2)
+        card_y1 = max(0, cursor_y - crop_h // 2)
+        sy1 = max(0, int(card_y1 + crop_h * 0.87))
+        sy2 = min(image.shape[0], int(card_y1 + crop_h * 1.53))
+        sx1 = max(0, int(card_x1 + crop_w * 0.13))
+        sx2 = min(image.shape[1], int(card_x1 + crop_w * 0.88))
+        sample = image[sy1:sy2, sx1:sx2]
+        if sample.size == 0:
+            return True
+        gray = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
+        mean_brightness = float(np.mean(gray))
+        std_brightness = float(np.std(gray))
+        is_empty = (mean_brightness <= EMPTY_SLOT_BRIGHTNESS_THRESHOLD
+                    and std_brightness <= EMPTY_SLOT_VARIANCE_THRESHOLD)
+        if is_empty:
+            safe_print(f"{Fore.YELLOW}[GRID]{Style.RESET_ALL} "
+                       f"空位检测: 亮度={mean_brightness:.1f}, "
+                       f"方差={std_brightness:.1f} → 空位")
+        return is_empty
+    except Exception as e:
+        log_error(f"is_empty_slot 检测出错: {e}")
+    return True
 

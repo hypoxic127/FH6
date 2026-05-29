@@ -40,7 +40,7 @@ def _wait_for_designs_and_paints(hwnd, max_wait=8):
 
 def _wait_for_cars_text(hwnd, max_wait=8):
     """
-    轮询检测 'Cars' 文字，确认在菜单页面可以按 A 进入车库。
+    轮询检测 'Cars' / 'My Cars' 文字，确认在菜单页面可以按 A 进入车库。
     返回 True 表示检测到，False 表示超时未检测到。
     """
     for i in range(max_wait):
@@ -49,17 +49,17 @@ def _wait_for_cars_text(hwnd, max_wait=8):
         if raw_img is None:
             continue
         h, w = raw_img.shape[:2]
-        # "Cars" 大标题位置 (9-13% 高度, 6-14% 宽度)
-        top_roi = raw_img[int(h * 0.09):int(h * 0.13), int(w * 0.06):int(w * 0.14)]
+        # "My Cars" 大白字位置（标注工具确认：19-28% 高度, 3-14% 宽度）
+        top_roi = raw_img[int(h * 0.19):int(h * 0.28), int(w * 0.03):int(w * 0.14)]
         gray = cv2.cvtColor(top_roi, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
         text = pytesseract.image_to_string(thresh, config='--psm 7').strip().lower()
         if "car" in text:
-            log_success(f"  ✅ 检测到 'Cars' (OCR: '{text}'，等待 {i+1}s)")
+            log_success(f"  ✅ 检测到 'My Cars' (OCR: '{text}'，等待 {i+1}s)")
             return True
         if i % 2 == 1:
-            log_info(f"  等待 Cars... #{i+1}: OCR='{text}'")
-    log_warning(f"  ⚠️ {max_wait}s 内未检测到 'Cars'")
+            log_info(f"  等待 My Cars... #{i+1}: OCR='{text}'")
+    log_warning(f"  ⚠️ {max_wait}s 内未检测到 'My Cars'")
     return False
 
 
@@ -89,7 +89,7 @@ def _wait_for_anna_link(hwnd, max_wait=15):
 
 
 
-def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="templates/target_car.png", start_col=1, start_row=1):
+def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", start_col=1, start_row=1):
     """
     车库 3行 × N列 "打字机走位" 网格导航引擎。
 
@@ -113,6 +113,12 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="
     MAX_COLUMNS = 200               # 安全上限
     total_excluded = 0              # 累计跳过的车（仅统计）
     found_first_target = False      # 是否已找到第一辆目标车
+    
+    # --- Impreza 区域检测 ---
+    # 车库按品牌排列，Impreza 22B 聚在一起。进入区域后离开即可停止。
+    in_impreza_zone = False         # 是否已进入 Impreza 区域
+    consecutive_non_impreza = 0     # 连续非 Impreza 的单元格数
+    NON_IMPREZA_EXIT_THRESHOLD = 3  # 连续 3 个非 Impreza 就视为已离开区域
 
     # 快进到起始列：按 Right 移动到 start_col
     if start_col > 1:
@@ -153,28 +159,10 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="
             cx, cy = cursor_pos
             log_info(f"    [行{row+1}] 光标位置: ({cx}, {cy})")
 
-            # === 空位检测：CARD_CROP h87%-153%, w13%-88% ===
-            # 空位特征：亮度 ≤ 50, 方差 ≤ 5（几乎纯色深灰）
-            is_empty_slot = False
-            try:
-                crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
-                card_x1 = max(0, cx - crop_w // 2)
-                card_y1 = max(0, cy - crop_h // 2)
-                sy1 = max(0, int(card_y1 + crop_h * 0.87))
-                sy2 = min(resized.shape[0], int(card_y1 + crop_h * 1.53))
-                sx1 = max(0, int(card_x1 + crop_w * 0.13))
-                sx2 = min(resized.shape[1], int(card_x1 + crop_w * 0.88))
-                cell_sample = resized[sy1:sy2, sx1:sx2]
-                if cell_sample.size > 0:
-                    gray_cell = cv2.cvtColor(cell_sample, cv2.COLOR_BGR2GRAY)
-                    cell_mean = float(np.mean(gray_cell))
-                    cell_std = float(np.std(gray_cell))
-                    if cell_mean <= 50 and cell_std <= 5:
-                        is_empty_slot = True
-                        log_info(f"    [行{row+1}] 🔲 检测到空位 (亮度={cell_mean:.1f}, 方差={cell_std:.1f})，跳过")
-            except Exception as e:
-                log_warning(f"Detection check exception: {e}")
-
+            # === 空位检测（使用统一函数）===
+            is_empty_slot = module_ocr.is_empty_slot(resized, cx, cy)
+            if is_empty_slot:
+                log_info(f"    [行{row+1}] 🔲 检测到空位，跳过")
             if is_empty_slot:
                 if row == 0:
                     # 第 1 行就是空位 → 整列为空，直接跳过本列
@@ -190,34 +178,48 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="
                             _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
                     return False, 0, 0
 
-            # 检查当前单元格是否有目标车辆（只看光标位置附近的匹配）
-            target_result = module_ocr.find_target_car(resized, template_path, cursor_pos=(cx, cy))
-            if target_result is not None and target_result != "ALL_EXCLUDED":
-                tx, ty, match_score = target_result
-                if abs(tx - cx) < TOLERANCE and abs(ty - cy) < TOLERANCE:
-                    # 目标在当前单元格内！
-                    found_first_target = True
-                    col_has_target = True
-                    log_success(f"    [行{row+1}] 🎯 目标匹配！分数: {match_score:.3f}，正在校验...")
-                    if verify_fn(resized, cx, cy):
-                        log_success(f"    [行{row+1}] ✅ {label} 校验通过！按 A 进入详情... (列{col}, 行{row+1})")
-                        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
-                        return True, col, row + 1
-                    else:
-                        total_excluded += 1
-                        log_info(f"    [行{row+1}] 跳过此车 (累计跳过: {total_excluded})")
-                else:
-                    log_info(f"    [行{row+1}] 目标在其他单元格 (tx={tx}, ty={ty})，忽略")
+            # 直接使用 OCR 校验函数判断当前单元格
+            if verify_fn(resized, cx, cy):
+                found_first_target = True
+                in_impreza_zone = True
+                consecutive_non_impreza = 0
+                col_has_target = True
+                log_success(f"    [行{row+1}] ✅ {label} 校验通过！按 A 进入详情... (列{col}, 行{row+1})")
+                _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
+                return True, col, row + 1
             else:
-                # 当前单元格不是目标车辆
-                if found_first_target and not is_empty_slot:
-                    log_info(f"    [行{row+1}] 已越过 Impreza 区域（当前单元格非目标），停止扫描")
-                    # 先复位再退出
-                    if rows_descended > 0:
-                        for i in range(rows_descended):
-                            _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
-                    return False, 0, 0
-                log_info(f"    [行{row+1}] 当前单元格无目标")
+                total_excluded += 1
+                log_info(f"    [行{row+1}] 校验未通过，跳过 (累计跳过: {total_excluded})")
+            
+            # --- Impreza 区域检测（每个单元格都检测） ---
+            # 利用 LEGENDARY 橙色标签作为区域标识：所有 Impreza 22B 都是 LEGENDARY
+            # verify_fn 内部已经做过 OCR，这里只用轻量 HSV 颜色检测
+            try:
+                _crop_w, _crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
+                _x1 = max(0, cx - _crop_w // 2)
+                _x2 = min(resized.shape[1], cx + _crop_w // 2)
+                _y1 = max(0, cy - _crop_h // 2)
+                _y2 = min(resized.shape[0], cy + _crop_h // 2)
+                _card = resized[_y1:_y2, _x1:_x2]
+                if _card.size > 0:
+                    _ch, _cw = _card.shape[:2]
+                    _rarity = _card[int(_ch*0.82):int(_ch*0.94), int(_cw*0.04):int(_cw*0.70)]
+                    if _rarity.size > 0:
+                        _hsv = cv2.cvtColor(_rarity, cv2.COLOR_BGR2HSV)
+                        _omask = cv2.inRange(_hsv, np.array([10, 100, 100]), np.array([25, 255, 255]))
+                        _opx = cv2.countNonZero(_omask)
+                        is_legendary = _opx > 200
+                        if is_legendary:
+                            if not in_impreza_zone:
+                                in_impreza_zone = True
+                                log_info(f"    [区域检测] 🟠 进入 LEGENDARY 区域 (橙色: {_opx}px)")
+                            consecutive_non_impreza = 0
+                        elif in_impreza_zone:
+                            consecutive_non_impreza += 1
+                            log_info(f"    [区域检测] 非 LEGENDARY 卡片 (连续 {consecutive_non_impreza}/{NON_IMPREZA_EXIT_THRESHOLD})")
+            except Exception:
+                if in_impreza_zone:
+                    consecutive_non_impreza += 1
 
             # 如果不是最后一行，检查下方是否有车再决定是否 Down
             if row < 2:
@@ -236,7 +238,10 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="
                 _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
             time.sleep(0.3)
 
-        # 无目标列不做退出，继续扫描（光标卡住时才退出）
+        # === Impreza 区域退出检测 ===
+        if in_impreza_zone and consecutive_non_impreza >= NON_IMPREZA_EXIT_THRESHOLD:
+            log_success(f"  🏁 已离开 Impreza 区域 (连续 {consecutive_non_impreza} 个非 Impreza)，停止扫描！")
+            return False, 0, 0
 
         # === 步骤 D: 在第 1 行按 Right 进入下一列 ===
         log_info(f"  ➡️ 按 Right 移到第 {col + 1} 列...")
@@ -249,20 +254,17 @@ def _navigate_garage_grid(hwnd, gamepad, verify_fn, label="车", template_path="
 _last_upgrade_col = 1
 _last_upgrade_row = 1
 
-def navigate_to_car_in_garage(hwnd, gamepad, template_path="templates/target_car.png", target_keyword="IMPREZA"):
+def navigate_to_car_in_garage(hwnd, gamepad, target_keyword="IMPREZA"):
     """选择有 NEW 标签的 Impreza（用于加点），从上次位置继续扫描"""
     global _last_upgrade_col, _last_upgrade_row
 
     def _verify(resized, cx, cy):
-        has_new = module_ocr.check_new_tag_only(resized, cx, cy)
-        if not has_new:
-            log_warning("  ⚠️ 该车已加过点，跳过...")
-        return has_new
+        # 双重校验：OCR 车名包含 IMPREZA + NEW 黄色标签
+        return module_ocr.verify_new_target_car(resized, cx, cy, target_keyword=target_keyword)
 
     log_info(f"  📍 上次位置: 列{_last_upgrade_col}, 行{_last_upgrade_row}")
     result, found_col, found_row = _navigate_garage_grid(
         hwnd, gamepad, _verify, label="NEW 车",
-        template_path=template_path,
         start_col=_last_upgrade_col, start_row=_last_upgrade_row
     )
     if result:
@@ -280,7 +282,7 @@ def reset_upgrade_position():
 
 
 
-def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png"):
+def _scan_and_delete_cars(hwnd, gamepad):
     """
     带状态机的车库扫描删除引擎。
     
@@ -293,7 +295,7 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
     """
     log_info("正在启动带状态机的删车扫描...")
 
-    TOLERANCE = 150
+
     MAX_COLUMNS = 40
     consecutive_empty_cols = 0
     MAX_EMPTY_COLS = 5
@@ -302,7 +304,7 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
     current_col = 1
 
     def _is_removable(resized, cx, cy):
-        """检查当前车是否可删除：无 NEW 标签 + 非 S1/S2 级别 + 卡片文字含 1998 SUBARU"""
+        """检查当前车是否可删除：无 NEW 标签 + 非 S1/S2 级别 + 卡片含 Impreza 22B 关键词"""
         has_new = module_ocr.check_new_tag_only(resized, cx, cy)
         if has_new:
             log_warning("  ⚠️ 该车仍有 NEW 标签（未加点），跳过...")
@@ -310,52 +312,27 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
         if module_ocr.check_is_high_class(resized, cx, cy):
             log_warning("  ⚠️ 该车是 S1/S2 级别（主力车），跳过！")
             return False
-        # 卡片 OCR 校验：使用原始分辨率截图读取 "1998 SUBARU"
+        # 卡片 OCR 校验：复用 _ocr_card_text + 全局关键词常量
         try:
-            raw_img = capture_raw_screenshot(hwnd)
-            if raw_img is None:
-                log_warning("  ⚠️ 原始截图失败，安全跳过")
-                return False
-            rh, rw = raw_img.shape[:2]
-            # 将 1600x900 坐标换算到原始分辨率
-            scale_x = rw / 1600.0
-            scale_y = rh / 900.0
-            rcx = int(cx * scale_x)
-            rcy = int(cy * scale_y)
-            crop_w = int(140 * scale_x)
-            crop_h = int(110 * scale_y)
-            x1 = max(0, rcx - crop_w)
-            x2 = min(rw, rcx + crop_w)
-            y1 = max(0, rcy - crop_h)
-            y2 = min(rh, rcy + crop_h)
-            card_roi = raw_img[y1:y2, x1:x2]
-            ch, cw = card_roi.shape[:2]
-            text_roi = card_roi[int(ch * 0.26):int(ch * 0.33), int(cw * 0.34):int(cw * 0.66)]
-            gray = cv2.cvtColor(text_roi, cv2.COLOR_BGR2GRAY)
-            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            card_text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
-            # 容错匹配: OCR 常把 1998→w99b/1898/1988 等
-            import re as _re
-            has_year = bool(_re.search(r'.?99[8b6]', card_text)) or any(y in card_text for y in ["1998", "1898", "1988", "199"])
-            has_brand = any(b in card_text for b in ["subaru", "sub", "impreza"])
-            if has_year and has_brand:
-                log_success(f"  ✅ 卡片 OCR 确认: 1998 SUBARU ('{card_text}')")
+            crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
+            _x1 = max(0, cx - crop_w // 2)
+            _x2 = min(resized.shape[1], cx + crop_w // 2)
+            _y1 = max(0, cy - crop_h // 2)
+            _y2 = min(resized.shape[0], cy + crop_h // 2)
+            card_roi = resized[_y1:_y2, _x1:_x2]
+            card_text = module_ocr._ocr_card_text(card_roi, debug_label="DELETE")
+            matched = [kw for kw in module_ocr.IMPREZA_22B_KEYWORDS if kw in card_text]
+            if len(matched) >= module_ocr.IMPREZA_22B_MIN_MATCH:
+                log_success(f"  ✅ 卡片 OCR 确认: 关键词 {len(matched)}/3 {matched}")
             else:
-                log_warning(f"  ⚠️ 卡片 OCR 未匹配 '1998 subaru'，读取: '{card_text}'，跳过！")
+                log_warning(f"  ⚠️ 卡片 OCR 未匹配 Impreza 22B (命中 {len(matched)}/3 {matched}, OCR: '{card_text[:50]}')，跳过！")
                 return False
         except Exception as e:
             log_warning(f"  ⚠️ 卡片 OCR 异常: {e}，安全跳过")
             return False
         return True
 
-    def _check_cell(resized, cx, cy):
-        """检查当前单元格是否有目标车辆"""
-        target_result = module_ocr.find_target_car(resized, template_path, cursor_pos=(cx, cy))
-        if target_result is not None and target_result != "ALL_EXCLUDED":
-            tx, ty, score = target_result
-            if abs(tx - cx) < TOLERANCE and abs(ty - cy) < TOLERANCE:
-                return True, score
-        return False, 0
+
 
     while current_col <= MAX_COLUMNS:
         log_info(f"\n{'='*40}")
@@ -379,24 +356,10 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
             cx, cy = cursor_pos
             log_info(f"    [行{current_row}] 光标位置: ({cx}, {cy})")
 
-            # 空位检测: CARD_CROP h87%-153%, w13%-88%
-            is_empty = False
-            try:
-                crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
-                card_x1 = max(0, cx - crop_w // 2)
-                card_y1 = max(0, cy - crop_h // 2)
-                sy1 = max(0, int(card_y1 + crop_h * 0.87))
-                sy2 = min(resized.shape[0], int(card_y1 + crop_h * 1.53))
-                sx1 = max(0, int(card_x1 + crop_w * 0.13))
-                sx2 = min(resized.shape[1], int(card_x1 + crop_w * 0.88))
-                sample = resized[sy1:sy2, sx1:sx2]
-                if sample.size > 0:
-                    g = cv2.cvtColor(sample, cv2.COLOR_BGR2GRAY)
-                    if float(np.mean(g)) <= 50 and float(np.std(g)) <= 5:
-                        is_empty = True
-                        log_info(f"    [行{current_row}] 🔲 检测到空位")
-            except Exception as e:
-                log_warning(f"Detection check exception: {e}")
+            # 空位检测（使用统一函数）
+            is_empty = module_ocr.is_empty_slot(resized, cx, cy)
+            if is_empty:
+                log_info(f"    [行{current_row}] 🔲 检测到空位")
 
             if is_empty:
                 if current_row == 1:
@@ -406,51 +369,42 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
                     log_info(f"    [行{current_row}] 空位，品牌区域已扫完")
                     return removed_count
 
-            # 检查是否有目标车辆
-            has_target, score = _check_cell(resized, cx, cy)
-            if has_target:
+            # 直接使用 OCR 校验判断是否可删除
+            if _is_removable(resized, cx, cy):
                 col_has_target = True
-                log_success(f"    [行{current_row}] 🎯 目标匹配！分数: {score:.3f}")
+                log_success(f"    [行{current_row}] ✅ 可删除！按 A 进入详情...")
+                _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
+                action_remove_single_car(hwnd, gamepad, removed_count + 1)
+                removed_count += 1
+                time.sleep(1.0)
 
-                if _is_removable(resized, cx, cy):
-                    log_success(f"    [行{current_row}] ✅ 可删除！按 A 进入详情...")
-                    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
-                    action_remove_single_car(hwnd, gamepad, removed_count + 1)
-                    removed_count += 1
-                    time.sleep(1.0)
+                # === 删除后状态机修正 ===
+                old_row, old_col = current_row, current_col
+                if current_row == 3:
+                    current_row = 2
+                elif current_row == 2:
+                    current_row = 1
+                elif current_row == 1:
+                    current_col -= 1
+                    current_row = 3
+                log_info(f"  [状态修正] 删除前: (行{old_row}, 列{old_col}) → 光标退到: (行{current_row}, 列{current_col})")
 
-                    # === 删除后状态机修正 ===
-                    old_row, old_col = current_row, current_col
-                    if current_row == 3:
-                        current_row = 2
-                    elif current_row == 2:
-                        current_row = 1
-                    elif current_row == 1:
-                        current_col -= 1
-                        current_row = 3
-                    log_info(f"  [状态修正] 删除前: (行{old_row}, 列{old_col}) → 光标退到: (行{current_row}, 列{current_col})")
+                # === 恢复扫描位置 ===
+                if current_row in (1, 2):
+                    log_info(f"  [恢复] 按 Down 前进到行{current_row + 1}...")
+                    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.5)
+                    current_row += 1
+                elif current_row == 3:
+                    log_info("  [恢复] 跨列回退：按 Right → Up×2 回到第 1 行...")
+                    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT, delay=0.5)
+                    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
+                    _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
+                    current_col += 1
+                    current_row = 1
 
-                    # === 恢复扫描位置 ===
-                    if current_row in (1, 2):
-                        # 按 Down 前进一格，落在补位的新车上
-                        log_info(f"  [恢复] 按 Down 前进到行{current_row + 1}...")
-                        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN, delay=0.5)
-                        current_row += 1
-                    elif current_row == 3:
-                        # 跨列回退：按 Right 进下一列，强制 Up×2 回到第 1 行
-                        log_info("  [恢复] 跨列回退：按 Right → Up×2 回到第 1 行...")
-                        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT, delay=0.5)
-                        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
-                        _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP, delay=0.3)
-                        current_col += 1
-                        current_row = 1
-
-                    # 不要 break，继续从新位置扫描（current_row 已更新）
-                    continue
-                else:
-                    log_info(f"    [行{current_row}] 该车不可删除，继续...")
+                continue
             else:
-                log_info(f"    [行{current_row}] 当前单元格无目标")
+                log_info(f"    [行{current_row}] 校验未通过，跳过")
 
             # 向下移动
             if current_row < 3:
@@ -523,8 +477,8 @@ def _scan_and_delete_cars(hwnd, gamepad, template_path="templates/target_car.png
     log_info(f"  已扫描 {MAX_COLUMNS} 列，删车完成。")
     return removed_count
 
-def navigate_to_car_for_removal(hwnd, gamepad, template_path="templates/target_car.png", target_keyword="IMPREZA"):
-    """没 NEW 签为 B 级 Impreza已可移"""
+def navigate_to_car_for_removal(hwnd, gamepad, target_keyword="IMPREZA"):
+    """选择没有 NEW 标签且为 B 级的 Impreza（已加点，可移除）"""
     def _verify(resized, cx, cy):
         has_new = module_ocr.check_new_tag_only(resized, cx, cy)
         if has_new:
@@ -535,10 +489,10 @@ def navigate_to_car_for_removal(hwnd, gamepad, template_path="templates/target_c
             log_warning("  ⚠️ 该车是 S1/S2 级别（用户主力车），跳过！")
             return False
 
-        log_success("    NEW 签为 B 级可以移！")
+        log_success("    无 NEW 标签且为 B 级，可以移除！")
         return True
 
-    result, _, _ = _navigate_garage_grid(hwnd, gamepad, _verify, label="移除车", template_path=template_path)
+    result, _, _ = _navigate_garage_grid(hwnd, gamepad, _verify, label="移除车")
     return result
 
 def action_remove_single_car(hwnd, gamepad, car_index):
@@ -572,14 +526,14 @@ def action_remove_single_car(hwnd, gamepad, car_index):
     log_success(f"  ✅ 第 {car_index} 辆车已成功从车库移除！")
 
 
-def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"):
+def navigate_to_main_car(hwnd, gamepad):
     """
     选择 S1/S2 级别的主力车（用于上车跑图）。
 
     不依赖 target_car.png 模板匹配（S2 主力车外观与 B 级不同，模板会失配），
     而是逐格扫描车库网格，直接用 PI 紫色徽章检测找到唯一的 S2 车。
     """
-    log_info("正在启动车库网格导航: 主车寻...")
+    log_info("正在启动车库网格导航: 主力车搜索...")
     log_info("  扫描模式: 逐格 PI 颜色检测（不依赖模板匹配）")
 
     MAX_COLUMNS = 30  # 主力车不会太远
@@ -611,26 +565,11 @@ def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"
             cx, cy = cursor_pos
             log_info(f"    [行{row+1}] 光标位置: ({cx}, {cy})")
 
-            # 空位检测: CARD_CROP h87%-153%, w13%-88%
-            is_empty = False
-            try:
-                crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
-                card_x1 = max(0, cx - crop_w // 2)
-                card_y1 = max(0, cy - crop_h // 2)
-                sy1 = max(0, int(card_y1 + crop_h * 0.87))
-                sy2 = min(resized.shape[0], int(card_y1 + crop_h * 1.53))
-                sx1 = max(0, int(card_x1 + crop_w * 0.13))
-                sx2 = min(resized.shape[1], int(card_x1 + crop_w * 0.88))
-                cell_sample = resized[sy1:sy2, sx1:sx2]
-                if cell_sample.size > 0:
-                    gray_cell = cv2.cvtColor(cell_sample, cv2.COLOR_BGR2GRAY)
-                    if float(np.mean(gray_cell)) <= 50 and float(np.std(gray_cell)) <= 5:
-                        is_empty = True
-                        log_info(f"    [行{row+1}] 🔲 空位，跳过")
-            except Exception:
-                pass
+            # 空位检测（使用统一函数）
+            is_empty = module_ocr.is_empty_slot(resized, cx, cy)
 
             if is_empty:
+                log_info(f"    [行{row+1}] 🔲 空位，跳过")
                 if row == 0:
                     break  # 整列空
                 else:
@@ -640,36 +579,28 @@ def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"
 
             # 直接检测 PI 颜色，不需要模板匹配
             if module_ocr.check_is_high_class(resized, cx, cy):
-                # 二次验证：OCR 读取卡片确认 1998 SUBARU
-                is_1998_subaru = False
+                # 二次验证：复用 _ocr_card_text 管线确认是 Impreza 22B
+                is_target_car = False
                 try:
-                    raw_img = capture_raw_screenshot(hwnd)
-                    if raw_img is not None:
-                        rh, rw = raw_img.shape[:2]
-                        scale_x, scale_y = rw / 1600.0, rh / 900.0
-                        rcx, rcy = int(cx * scale_x), int(cy * scale_y)
-                        crop_w, crop_h = int(140 * scale_x), int(110 * scale_y)
-                        x1, x2 = max(0, rcx - crop_w), min(rw, rcx + crop_w)
-                        y1, y2 = max(0, rcy - crop_h), min(rh, rcy + crop_h)
-                        card_roi = raw_img[y1:y2, x1:x2]
-                        ch_r, cw_r = card_roi.shape[:2]
-                        text_roi = card_roi[int(ch_r * 0.26):int(ch_r * 0.33), int(cw_r * 0.34):int(cw_r * 0.66)]
-                        gray = cv2.cvtColor(text_roi, cv2.COLOR_BGR2GRAY)
-                        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                        card_text = pytesseract.image_to_string(thresh, config='--psm 6').strip().lower()
-                        import re as _re
-                        has_year = bool(_re.search(r'.?99[8b6]', card_text)) or any(y in card_text for y in ["1998", "1898", "1988", "199"])
-                        has_brand = any(b in card_text for b in ["subaru", "sub", "impreza"])
-                        if has_year and has_brand:
-                            log_success(f"    [行{row+1}] ✅ 卡片 OCR 确认: 1998 SUBARU ('{card_text}')")
-                            is_1998_subaru = True
-                        else:
-                            log_warning(f"    [行{row+1}] ⚠️ S2 但非 1998 SUBARU (OCR: '{card_text}')，跳过")
+                    crop_w, crop_h = module_ocr.CARD_CROP_W, module_ocr.CARD_CROP_H
+                    _x1 = max(0, cx - crop_w // 2)
+                    _x2 = min(resized.shape[1], cx + crop_w // 2)
+                    _y1 = max(0, cy - crop_h // 2)
+                    _y2 = min(resized.shape[0], cy + crop_h // 2)
+                    card_roi = resized[_y1:_y2, _x1:_x2]
+                    card_text = module_ocr._ocr_card_text(card_roi, debug_label="MAIN_CAR")
+                    # 多关键词匹配（使用全局常量）
+                    matched = [kw for kw in module_ocr.IMPREZA_22B_KEYWORDS if kw in card_text]
+                    if len(matched) >= module_ocr.IMPREZA_22B_MIN_MATCH:
+                        log_success(f"    [行{row+1}] ✅ 卡片 OCR 确认: 关键词 {len(matched)}/3 {matched}")
+                        is_target_car = True
+                    else:
+                        log_warning(f"    [行{row+1}] ⚠️ S2 但非目标车 (命中 {len(matched)}/3 {matched}, OCR: '{card_text[:50]}')，跳过")
                 except Exception as e:
                     log_warning(f"    [行{row+1}] ⚠️ 卡片 OCR 异常: {e}")
 
-                if is_1998_subaru:
-                    log_success(f"    [行{row+1}] ✅ 找到主力车（S2 + 1998 SUBARU）！按 A 进入详情... (列{col}, 行{row+1})")
+                if is_target_car:
+                    log_success(f"    [行{row+1}] ✅ 找到主力车（S2 + Impreza 22B）！按 A 进入详情... (列{col}, 行{row+1})")
                     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=2.0)
                     return True, col, row + 1
                 else:
@@ -711,7 +642,7 @@ def navigate_to_main_car(hwnd, gamepad, template_path="templates/target_car.png"
     return False, 0, 0
 
 def action_get_in_car(hwnd, gamepad):
-    """详页 'Get In Car'第个项认中"""
+    """在详情页选择 'Get In Car'（第一个选项）并确认"""
     log_info("  Get In Car...")
     time.sleep(1.0)
     _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=3.0)
