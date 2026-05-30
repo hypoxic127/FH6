@@ -5,7 +5,7 @@ FH6AutoBot.spec — PyInstaller 打包配置（优化版）
 用法:
     pyinstaller FH6AutoBot.spec
 
-生成: dist/FH6AutoBot/ 目录（--onedir 模式）
+生成: dist/FH6AutoBot.exe（--onefile 单文件模式）
 
 优化策略:
     - 排除 PIL/Pillow（项目只用 OpenCV，不需要 Pillow）
@@ -126,8 +126,9 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    [],
-    exclude_binaries=True,   # --onedir 模式
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     name="FH6AutoBot",
     debug=False,
     bootloader_ignore_signals=False,
@@ -139,15 +140,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name="FH6AutoBot",
 )
