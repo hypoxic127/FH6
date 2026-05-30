@@ -52,11 +52,7 @@
                     <div class="card-value card-value-text" id="current-state">IDLE</div>
                 </div>
             </div>
-            <div class="card card-has-arc">
-                <svg class="card-arc" viewBox="0 0 80 44">
-                    <path class="arc-bg" d="M8,40 A32,32 0 0,1 72,40" />
-                    <path class="arc-fill arc-fill-loop" id="arc-loop" d="M8,40 A32,32 0 0,1 72,40" />
-                </svg>
+            <div class="card">
                 <div class="card-icon">🔄</div>
                 <div class="card-body">
                     <div class="card-label" data-i18n="loopCount">Loop Count</div>
@@ -70,11 +66,7 @@
                     <div class="card-value card-value-num" id="uptime">00<span class="colon">:</span>00<span class="colon">:</span>00</div>
                 </div>
             </div>
-            <div class="card card-has-arc">
-                <svg class="card-arc" viewBox="0 0 80 44">
-                    <path class="arc-bg" d="M8,40 A32,32 0 0,1 72,40" />
-                    <path class="arc-fill arc-fill-sp" id="arc-sp" d="M8,40 A32,32 0 0,1 72,40" />
-                </svg>
+            <div class="card">
                 <div class="card-icon">🎰</div>
                 <div class="card-body">
                     <div class="card-label" data-i18n="superWheelspins">Super Wheelspins</div>
@@ -210,19 +202,7 @@
         </section>
     </div>
 
-    <!-- SVG gradient defs for tachometer arcs -->
-    <svg width="0" height="0" style="position:absolute">
-        <defs>
-            <linearGradient id="grad-loop" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00e5c8"/>
-                <stop offset="100%" stop-color="#3d8bff"/>
-            </linearGradient>
-            <linearGradient id="grad-sp" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#ff2d78"/>
-                <stop offset="100%" stop-color="#ff8c22"/>
-            </linearGradient>
-        </defs>
-    </svg>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>

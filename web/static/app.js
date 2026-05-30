@@ -260,8 +260,7 @@ socket.on("state_update", (data) => {
     }
 
     updateStageProgress(data.current_state);
-    updateArc("arc-loop", data.loop_count || 0, 50);
-    updateArc("arc-sp", data.super_wheelspins || 0, 30);
+
 });
 
 socket.on("bot_status", (data) => {
@@ -481,17 +480,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ==========================================
-// SVG 转速表弧线
-// ==========================================
-const ARC_LENGTH = 100.53; // half-circle circumference for r=32
 
-function updateArc(id, value, max) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const ratio = Math.min(value / max, 1);
-    el.style.strokeDashoffset = ARC_LENGTH * (1 - ratio);
-}
 
 // ==========================================
 // 自动滚动检测

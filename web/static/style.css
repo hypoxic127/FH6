@@ -493,53 +493,7 @@ body::before {
     50% { opacity: 0.2; }
 }
 
-/* --- SVG Tachometer Arc --- */
-.card-has-arc {
-    position: relative;
-    overflow: visible;
-}
 
-.card-arc {
-    position: absolute;
-    bottom: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80px;
-    height: 44px;
-    pointer-events: none;
-    opacity: 0.35;
-    transition: opacity var(--transition);
-}
-
-.card-has-arc:hover .card-arc {
-    opacity: 0.55;
-}
-
-.arc-bg {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.06);
-    stroke-width: 4;
-    stroke-linecap: round;
-}
-
-.arc-fill {
-    fill: none;
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-dasharray: 100.53;
-    stroke-dashoffset: 100.53;
-    transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.arc-fill-loop {
-    stroke: url(#grad-loop);
-    filter: drop-shadow(0 0 4px rgba(0, 229, 200, 0.3));
-}
-
-.arc-fill-sp {
-    stroke: url(#grad-sp);
-    filter: drop-shadow(0 0 4px rgba(255, 45, 120, 0.3));
-}
 
 /* --- Stage Progress --- */
 .progress-section {
