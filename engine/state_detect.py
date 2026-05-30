@@ -78,7 +78,8 @@ class StateDetector:
     """
 
     def __init__(self) -> None:
-        pass
+        self.ref_hists: dict = {}
+        self.tab_ref_brightness: dict = {}
 
     # ===================================================================
     #  主入口

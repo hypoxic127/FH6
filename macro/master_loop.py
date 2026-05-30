@@ -6,6 +6,7 @@ macro/master_loop.py — 主控状态机循环
 """
 
 import sys
+import threading
 import time
 
 import vgamepad as vg
@@ -46,6 +47,29 @@ from macro.purchase import (
 )
 from macro.upgrade import action_upgrade_car_skills
 
+# 全局停止事件，由 Web UI 的 stop_bot 处理器设置
+_stop_event: threading.Event = threading.Event()
+
+
+class BotStoppedError(Exception):
+    """用户通过 Web UI 主动停止 bot 时抛出。"""
+
+
+def request_stop() -> None:
+    """设置停止标志，主循环将在下一个检查点退出。"""
+    _stop_event.set()
+
+
+def clear_stop() -> None:
+    """清除停止标志（启动前调用）。"""
+    _stop_event.clear()
+
+
+def _check_stop() -> None:
+    """检查停止标志，若已设置则抛出 BotStoppedError。"""
+    if _stop_event.is_set():
+        raise BotStoppedError("Bot stopped by user")
+
 
 def run_master_bot_loop(
     initial_state: str | None = None,
@@ -82,6 +106,7 @@ def run_master_bot_loop(
     loop_count = 1
     try:
         while True:
+            _check_stop()
             log_info(f"--- 循环回路 #{loop_count} ---")
             try:
                 # --- 1. 买车阶段 ---
@@ -346,6 +371,10 @@ def run_master_bot_loop(
                 time.sleep(5.0)
                 continue
 
+    except BotStoppedError:
+        log_warning("==================================================")
+        log_warning("     ⛔ Bot 已被用户主动停止")
+        log_warning("==================================================")
     except KeyboardInterrupt:
         print()
         log_warning("==================================================")

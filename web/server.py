@@ -24,6 +24,7 @@ from flask_socketio import SocketIO
 
 from engine.event_bus import get_bus
 from engine.runtime import get_base_dir
+from macro.master_loop import clear_stop, request_stop
 from web.state_manager import get_state_manager
 
 # 抑制 Flask/Werkzeug 的请求日志和 WebSocket 升级错误
@@ -94,6 +95,7 @@ def handle_start_bot(data: dict[str, Any] | None = None) -> None:
     loop = data.get("loop", False)
 
     _bot_stop_event.clear()
+    clear_stop()
 
     def _run_bot() -> None:
         """在子线程中运行 bot 主循环。"""
@@ -118,8 +120,9 @@ def handle_start_bot(data: dict[str, Any] | None = None) -> None:
 
 @_socketio.on("stop_bot")
 def handle_stop_bot() -> None:
-    """停止 bot 线程（通过设置停止标志）。"""
+    """停止 bot 线程。"""
     _bot_stop_event.set()
+    request_stop()
     get_bus().emit("bot_stopped", {})
     _socketio.emit("bot_status", {"running": False})
     get_bus().emit("log", {"level": "warning", "msg": "⛔ Bot 已被 Web UI 手动停止"})
