@@ -1,10 +1,6 @@
-<![CDATA[<div align="center">
+# 🏎️ FH6 AutoBot — A Never-Ending AFK Farming Machine
 
-# 🏎️ FH6 AutoBot
-
-### A Never-Ending AFK Farming Machine
-
-一个永不落幕的全自动挂机工具
+**一个永不落幕的全自动挂机工具**
 
 [![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
 [![Release](https://github.com/hypoxic127/FH6/actions/workflows/release.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/release.yml)
@@ -12,19 +8,8 @@
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-Personal%20Use-f5c542)
 
-<br/>
-
-<img src="https://img.shields.io/badge/-OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" alt="OpenCV"/>
-<img src="https://img.shields.io/badge/-Tesseract%20OCR-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Tesseract"/>
-<img src="https://img.shields.io/badge/-Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask"/>
-<img src="https://img.shields.io/badge/-ViGEmBus-107C10?style=for-the-badge&logo=xbox&logoColor=white" alt="ViGEmBus"/>
-
-</div>
-
-<br/>
-
-> **Forza Horizon 6** 全自动技能点无限循环挂机系统。  
-> 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 识别游戏画面状态，通过 **虚拟手柄 (ViGEmBus)** 模拟操作，实现 **零人工干预** 的闭环技能点刷取。  
+> **Forza Horizon 6** 全自动技能点无限循环挂机系统。
+> 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 识别游戏画面状态，通过 **虚拟手柄 (ViGEmBus)** 模拟操作，实现 **零人工干预** 的闭环技能点刷取。
 > 提供 **赛博朋克风格 Web UI** 仪表盘，支持远程监控与一键操控。
 
 ---
@@ -132,8 +117,7 @@ python main_bot.py --web
 4. **安装 S2 级改装** — 任意 S2 级调校（PI 徽章显示蓝色）
 5. **收藏 EventLab 蓝图** — 分享码 `890169683`
 
-> [!IMPORTANT]
-> 主力车的 **S2 蓝色 PI 徽章** 是程序区分 "保留车" 与 "可删除车" 的唯一判据。请务必确认主力车已安装 S2 调校。
+> **⚠️ 重要：** 主力车的 **S2 蓝色 PI 徽章** 是程序区分 "保留车" 与 "可删除车" 的唯一判据。请务必确认主力车已安装 S2 调校。
 
 ---
 
@@ -177,8 +161,7 @@ python packaging/build.py
 
 生成 `dist/FH6AutoBot.exe`，无需 Python 即可运行（仍需 Tesseract 和 ViGEmBus）。
 
-> [!TIP]
-> 推送 Git 版本标签（如 `git tag v1.2.0 && git push --tags`）会自动触发 GitHub Actions 构建并发布到 Release 页面。
+> **💡 提示：** 推送 Git 版本标签（如 `git tag v1.2.0 && git push --tags`）会自动触发 GitHub Actions 构建并发布到 Release 页面。
 
 ---
 
@@ -187,50 +170,50 @@ python packaging/build.py
 ```
 FH6_AutoBot/
 │
-├── 🚀 main_bot.py                 # 主程序入口（终端 / Web UI）
+├── main_bot.py                 # 🚀 主程序入口（终端 / Web UI）
 │
-├── 🧠 engine/                     # 感知引擎层
-│   ├── ocr.py                     #   计算机视觉（OCR + 颜色检测）
-│   ├── state_detect.py            #   游戏状态检测器（直方图 + OCR 混合）
-│   ├── event_bus.py               #   事件总线（日志/状态推送到 Web UI）
-│   ├── runtime.py                 #   PyInstaller 运行时路径解析
-│   └── utils.py                   #   日志 / 窗口操作 / 手柄 / MSS 截图
+├── engine/                     # 🧠 感知引擎层
+│   ├── ocr.py                  #    计算机视觉（OCR + 颜色检测）
+│   ├── state_detect.py         #    游戏状态检测器（直方图 + OCR 混合）
+│   ├── event_bus.py            #    事件总线（日志/状态推送到 Web UI）
+│   ├── runtime.py              #    PyInstaller 运行时路径解析
+│   └── utils.py                #    日志 / 窗口操作 / 手柄 / MSS 截图
 │
-├── 🎮 macro/                      # 宏操作层
-│   ├── master_loop.py             #   主状态机（四阶段循环引擎）
-│   ├── core.py                    #   基础设施：截图、日志、常量
-│   ├── navigation.py              #   菜单导航 / 视觉制动 / 返回车库
-│   ├── purchase.py                #   五步 Impreza 购买导航
-│   ├── garage.py                  #   车库网格：选择 / 删除 / 主力车导航
-│   └── upgrade.py                 #   升级宏（Cannot Afford 检测）
+├── macro/                      # 🎮 宏操作层
+│   ├── master_loop.py          #    主状态机（四阶段循环引擎）
+│   ├── core.py                 #    基础设施：截图、日志、常量
+│   ├── navigation.py           #    菜单导航 / 视觉制动 / 返回车库
+│   ├── purchase.py             #    五步 Impreza 购买导航
+│   ├── garage.py               #    车库网格：选择 / 删除 / 主力车导航
+│   └── upgrade.py              #    升级宏（Cannot Afford 检测）
 │
-├── 🏁 farm/                       # EventLab 刷图层
-│   └── skills.py                  #   视觉状态机（自动驾驶 + 结算检测）
+├── farm/                       # 🏁 EventLab 刷图层
+│   └── skills.py               #    视觉状态机（自动驾驶 + 结算检测）
 │
-├── 🌐 web/                        # Web UI 控制面板
-│   ├── server.py                  #   Flask + SocketIO 服务端
-│   ├── state_manager.py           #   全局状态管理器
-│   └── static/                    #   前端资源
-│       ├── index.html             #     仪表盘页面
-│       ├── style.css              #     赛博朋克主题样式
-│       └── app.js                 #     WebSocket 客户端逻辑
+├── web/                        # 🌐 Web UI 控制面板
+│   ├── server.py               #    Flask + SocketIO 服务端
+│   ├── state_manager.py        #    全局状态管理器
+│   └── static/                 #    前端资源
+│       ├── index.html          #      仪表盘页面
+│       ├── style.css           #      赛博朋克主题样式
+│       └── app.js              #      WebSocket 客户端逻辑
 │
-├── 📦 packaging/                  # 构建与打包
-│   ├── build.py                   #   一键 PyInstaller 构建脚本
-│   ├── FH6AutoBot.spec            #   PyInstaller spec（--onefile）
-│   └── hook_utf8.py               #   运行时钩子（Windows UTF-8 修复）
+├── packaging/                  # 📦 构建与打包
+│   ├── build.py                #    一键 PyInstaller 构建脚本
+│   ├── FH6AutoBot.spec         #    PyInstaller spec（--onefile）
+│   └── hook_utf8.py            #    运行时钩子（Windows UTF-8 修复）
 │
-├── 🧪 tests/                      # 单元测试（95 个用例）
-├── 🔧 tools/                      # 开发调试工具（不打包）
+├── tests/                      # 🧪 单元测试（95 个用例）
+├── tools/                      # 🔧 开发调试工具（不打包）
 │
 ├── .github/workflows/
-│   ├── ci.yml                     #   CI（Ruff 检查 + Pytest 测试）
-│   └── release.yml                #   Release（PyInstaller → GitHub Release）
+│   ├── ci.yml                  #    CI（Ruff 检查 + Pytest 测试）
+│   └── release.yml             #    Release（PyInstaller → GitHub Release）
 │
-├── setup.py                       # 一键环境安装脚本
-├── requirements.txt               # Python 依赖清单
-├── ruff.toml                      # Ruff 代码检查配置
-└── pytest.ini                     # Pytest 测试配置
+├── setup.py                    # ⚙️ 一键环境安装脚本
+├── requirements.txt            # 📋 Python 依赖清单
+├── ruff.toml                   # 🔍 Ruff 代码检查配置
+└── pytest.ini                  # 🧪 Pytest 测试配置
 ```
 
 ---
@@ -258,40 +241,28 @@ python -m ruff format --check .
 
 ## 🔍 核心技术原理
 
-<details>
-<summary><b>👁️ 视觉状态检测</b></summary>
+### 👁️ 视觉状态检测
 
 - **直方图 + OCR 混合** — `StateDetector` 先用颜色分布特征快速筛选候选状态，再用 OCR 精确验证
 - **PI 徽章颜色检测** — HSV 色彩空间分析：蓝色 = S2 主力车（保留），橙色 = 可删除车
 
-</details>
-
-<details>
-<summary><b>🔤 OCR 识别策略</b></summary>
+### 🔤 OCR 识别策略
 
 - **多 PSM 策略投票** — 同时使用 PSM 8/7/13 三种模式，取多数一致结果
 - **OTSU 自适应阈值** — 防止单位数被误补零
 - **零技能点保底检测** — 识别 "No Skill Points Available" 文本
 
-</details>
-
-<details>
-<summary><b>🎯 车库网格导航</b></summary>
+### 🎯 车库网格导航
 
 - **打字机遍历** — 逐列、从上到下扫描 3×N 网格
 - **三重校验** — OCR 关键词（2/3 一致）+ NEW 黄色标签 + LEGENDARY 橙色稀有度
 - **Cannot Afford 检测** — 弹窗自动关闭，停止购买流程
 
-</details>
-
-<details>
-<summary><b>📦 构建与打包</b></summary>
+### 📦 构建与打包
 
 - **PyInstaller --onefile** — 单文件 ~44MB 可执行程序
 - **运行时路径层** — `engine/runtime.py` 统一路径解析（开发/打包双模式）
 - **UTF-8 控制台修复** — `hook_utf8.py` 解决 Windows 中文日志乱码
-
-</details>
 
 ---
 
@@ -321,11 +292,6 @@ This project is for **learning and personal use** only.
 
 ---
 
-<div align="center">
-
 **如果这个项目对你有帮助，请给一个 ⭐ Star 支持一下！**
 
 Made with ❤️ by [hypoxic127](https://github.com/hypoxic127)
-
-</div>
-]]>
