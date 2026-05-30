@@ -78,6 +78,28 @@ body {
     letter-spacing: 0.3px;
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-lang {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    border-radius: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn-lang:hover {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
 .badge-connected {
     background: var(--glow-green);
     color: var(--accent-green);

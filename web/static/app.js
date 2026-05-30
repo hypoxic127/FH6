@@ -1,8 +1,115 @@
 /**
  * FH6 AutoBot — Web UI Client
  * ============================
- * WebSocket 连接 + 状态更新 + 日志渲染
+ * WebSocket + i18n + 状态更新 + 日志渲染
  */
+
+// ==========================================
+// i18n 双语系统
+// ==========================================
+const I18N = {
+    en: {
+        subtitle: "Forza Horizon 6 AFK Farming",
+        connected: "⚡ Connected",
+        disconnected: "⚡ Disconnected",
+        currentStage: "Current Stage",
+        loopCount: "Loop Count",
+        uptime: "Uptime",
+        skillPoints: "Skill Points",
+        stageFarm: "Farm",
+        stageBuy: "Buy",
+        stageUpgrade: "Upgrade",
+        stageSell: "Sell",
+        startStage: "Start Stage",
+        optFarm: "🏎️ Farm Skill Points",
+        optBuy: "🛒 Buy Cars",
+        optUpgrade: "⚡ Upgrade Cars",
+        optSell: "🗑️ Sell Cars",
+        autoLoop: "Auto Loop (4-stage cycle)",
+        skipBuy: "Skip Buy Stage",
+        btnStart: "▶ Start Bot",
+        btnStop: "⏹ Stop Bot",
+        btnClear: "🗑 Clear Logs",
+        liveLogs: "📜 Live Logs",
+        waitingConnection: "Waiting for connection...",
+        logsCleared: "Logs cleared",
+        entries: "entries",
+        langToggle: "🌐 中文",
+        stateIdle: "Idle",
+        stateFarm: "Farm Points",
+        stateBuy: "Buy Cars",
+        stateUpgrade: "Upgrade",
+        stateSell: "Sell Cars",
+    },
+    zh: {
+        subtitle: "Forza Horizon 6 全自动挂机工具",
+        connected: "⚡ 已连接",
+        disconnected: "⚡ 未连接",
+        currentStage: "当前阶段",
+        loopCount: "循环次数",
+        uptime: "运行时长",
+        skillPoints: "技能点",
+        stageFarm: "刷点",
+        stageBuy: "买车",
+        stageUpgrade: "加点",
+        stageSell: "卖车",
+        startStage: "选择阶段",
+        optFarm: "🏎️ 刷技能点",
+        optBuy: "🛒 买车",
+        optUpgrade: "⚡ 加技能点",
+        optSell: "🗑️ 卖车",
+        autoLoop: "自动循环（四阶段闭环）",
+        skipBuy: "跳过买车阶段",
+        btnStart: "▶ 启动",
+        btnStop: "⏹ 停止",
+        btnClear: "🗑 清空日志",
+        liveLogs: "📜 实时日志",
+        waitingConnection: "等待连接...",
+        logsCleared: "日志已清空",
+        entries: "条",
+        langToggle: "🌐 English",
+        stateIdle: "空闲",
+        stateFarm: "刷技能点",
+        stateBuy: "买车",
+        stateUpgrade: "加技能点",
+        stateSell: "卖车",
+    },
+};
+
+let currentLang = localStorage.getItem("fh6_lang") || "en";
+
+function t(key) {
+    return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+}
+
+function applyI18n() {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        el.textContent = t(key);
+    });
+    // Update language toggle button text
+    document.getElementById("lang-toggle").textContent = t("langToggle");
+    // Update connection badge
+    const badge = document.getElementById("connection-status");
+    if (socket.connected) {
+        badge.textContent = t("connected");
+    } else {
+        badge.textContent = t("disconnected");
+    }
+    // Update log counter
+    document.getElementById("log-count").textContent = `${logCount} ${t("entries")}`;
+    // Re-render current state display
+    const stateEl = document.getElementById("current-state");
+    if (stateEl._rawState) {
+        stateEl.textContent = formatState(stateEl._rawState);
+    }
+}
+
+function toggleLang() {
+    currentLang = currentLang === "en" ? "zh" : "en";
+    localStorage.setItem("fh6_lang", currentLang);
+    applyI18n();
+}
 
 // ==========================================
 // WebSocket 连接
@@ -18,13 +125,13 @@ let botRunning = false;
 // ==========================================
 socket.on("connect", () => {
     const badge = document.getElementById("connection-status");
-    badge.textContent = "⚡ Connected";
+    badge.textContent = t("connected");
     badge.className = "badge badge-connected";
 });
 
 socket.on("disconnect", () => {
     const badge = document.getElementById("connection-status");
-    badge.textContent = "⚡ Disconnected";
+    badge.textContent = t("disconnected");
     badge.className = "badge badge-disconnected";
 });
 
@@ -32,7 +139,9 @@ socket.on("disconnect", () => {
 // 状态更新
 // ==========================================
 socket.on("state_update", (data) => {
-    document.getElementById("current-state").textContent = formatState(data.current_state);
+    const stateEl = document.getElementById("current-state");
+    stateEl._rawState = data.current_state;
+    stateEl.textContent = formatState(data.current_state);
     document.getElementById("loop-count").textContent = data.loop_count || 0;
     document.getElementById("skill-points").textContent = data.skill_points || 0;
 
@@ -40,7 +149,6 @@ socket.on("state_update", (data) => {
         document.getElementById("uptime").textContent = formatUptime(data.uptime_seconds);
     }
 
-    // Update stage progress
     updateStageProgress(data.current_state);
 });
 
@@ -82,9 +190,9 @@ function stopBot() {
 
 function clearLogs() {
     const container = document.getElementById("log-container");
-    container.innerHTML = '<div class="log-empty">Logs cleared</div>';
+    container.innerHTML = `<div class="log-empty">${t("logsCleared")}</div>`;
     logCount = 0;
-    document.getElementById("log-count").textContent = "0 entries";
+    document.getElementById("log-count").textContent = `0 ${t("entries")}`;
 }
 
 function updateButtons() {
@@ -98,7 +206,6 @@ function updateButtons() {
 function appendLog(data) {
     const container = document.getElementById("log-container");
 
-    // 移除空状态提示
     const empty = container.querySelector(".log-empty");
     if (empty) empty.remove();
 
@@ -113,14 +220,12 @@ function appendLog(data) {
 
     container.appendChild(entry);
     logCount++;
-    document.getElementById("log-count").textContent = `${logCount} entries`;
+    document.getElementById("log-count").textContent = `${logCount} ${t("entries")}`;
 
-    // 自动滚动到底部
     if (autoScroll) {
         container.scrollTop = container.scrollHeight;
     }
 
-    // 限制 DOM 节点数量（保留最新 1000 条）
     while (container.children.length > 1000) {
         container.removeChild(container.firstChild);
     }
@@ -145,13 +250,14 @@ function updateStageProgress(state) {
 // ==========================================
 function formatState(state) {
     const map = {
-        IDLE: "Idle",
-        STATE_FARM_POINTS: "Farm Points",
-        STATE_BUY_CARS: "Buy Cars",
-        STATE_UPGRADE_CARS: "Upgrade",
-        STATE_TRASH_CARS: "Sell Cars",
+        IDLE: "stateIdle",
+        STATE_FARM_POINTS: "stateFarm",
+        STATE_BUY_CARS: "stateBuy",
+        STATE_UPGRADE_CARS: "stateUpgrade",
+        STATE_TRASH_CARS: "stateSell",
     };
-    return map[state] || state || "Idle";
+    const key = map[state];
+    return key ? t(key) : state || t("stateIdle");
 }
 
 function formatUptime(seconds) {
@@ -192,3 +298,8 @@ setInterval(() => {
         socket.emit("get_state");
     }
 }, 5000);
+
+// ==========================================
+// 初始化 i18n
+// ==========================================
+applyI18n();
