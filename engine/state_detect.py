@@ -8,13 +8,10 @@ module_state_detect.py — 无模板状态检测引擎
 检测优先级: 比赛状态 > 导航锚点 > 赛事子菜单 > 主菜单标签
 
 用法:
-    detector = StateDetector("state_references.json")
+    detector = StateDetector()
     state = detector.detect(resized_frame)
 """
 
-import base64
-import json
-import os
 
 import cv2
 import numpy as np
@@ -55,18 +52,6 @@ RACING_ROIS = {
     "HUD_SPEED": {"roi": (0.75, 0.98, 0.80, 0.98)},
 }
 
-REF_FILE = "state_references.json"
-
-
-def _hist_to_base64(hist):
-    """将 numpy 直方图编码为 base64 字符串用于 JSON 存储。"""
-    return base64.b64encode(hist.astype(np.float32).tobytes()).decode("ascii")
-
-
-def _base64_to_hist(s, shape=(18, 16)):
-    """从 base64 字符串解码 numpy 直方图。"""
-    raw = base64.b64decode(s)
-    return np.frombuffer(raw, dtype=np.float32).reshape(shape)
 
 
 def compute_hist(roi_bgr, bins=(18, 16)):
@@ -92,39 +77,8 @@ class StateDetector:
       - detect(resized, mode="racing") — 快速比赛状态检测
     """
 
-    def __init__(self, ref_path=None):
-        self.ref_path = ref_path or REF_FILE
-        self.ref_hists = {}
-        self.tab_ref_brightness = {}
-        self._load_references()
-
-    def _load_references(self):
-        """从 JSON 文件加载校准参考数据。"""
-        if not os.path.exists(self.ref_path):
-            return
-
-        try:
-            with open(self.ref_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            # 加载导航页面直方图
-            for state, hist_b64 in data.get("nav_hists", {}).items():
-                self.ref_hists[state] = _base64_to_hist(hist_b64)
-
-            # 加载比赛状态直方图
-            for state, hist_b64 in data.get("racing_hists", {}).items():
-                self.ref_hists[state] = _base64_to_hist(hist_b64)
-
-            # 加载标签亮度参考值
-            self.tab_ref_brightness = data.get("tab_brightness", {})
-
-            log_success(
-                f"[StateDetector] 加载参考数据: "
-                f"{len(self.ref_hists)} 个直方图, "
-                f"{len(self.tab_ref_brightness)} 个标签参考"
-            )
-        except Exception as e:
-            log_warning(f"[StateDetector] 加载参考数据失败: {e}")
+    def __init__(self) -> None:
+        pass
 
     # ===================================================================
     #  主入口
@@ -269,7 +223,6 @@ class StateDetector:
         car_title_gray = cv2.cvtColor(car_title_roi, cv2.COLOR_BGR2GRAY)
         _, car_title_thresh = cv2.threshold(car_title_gray, 200, 255, cv2.THRESH_BINARY)
         car_title_text = pytesseract.image_to_string(car_title_thresh, config="--psm 7").strip().lower()
-        log_info(f"[NAV] CAR_SELECT OCR: '{car_title_text}'")
         if "my" in car_title_text and "car" in car_title_text:
             return "CAR_SELECT"
 
@@ -278,7 +231,6 @@ class StateDetector:
         race_btn_gray = cv2.cvtColor(race_btn_roi, cv2.COLOR_BGR2GRAY)
         _, race_btn_thresh = cv2.threshold(race_btn_gray, 120, 255, cv2.THRESH_BINARY)
         race_btn_text = pytesseract.image_to_string(race_btn_thresh, config="--psm 7").strip().lower()
-        log_info(f"[NAV] PRE_RACE OCR: '{race_btn_text}'")
         if "start" in race_btn_text and "race" in race_btn_text:
             return "PRE_RACE"
 
@@ -533,21 +485,9 @@ class StateDetector:
 _detector_instance: StateDetector | None = None
 
 
-def get_detector(ref_path: str | None = None) -> StateDetector:
-    """
-    获取共享的 StateDetector 单例。
-
-    StateDetector.__init__() 会从磁盘读取 JSON 并反序列化直方图数据，
-    在 purchase.py 的导航循环中每帧都创建新实例会造成不必要的 I/O 开销。
-    使用此函数可确保全局只创建一个实例。
-
-    Args:
-        ref_path: 可选的参考数据文件路径，仅在首次创建时生效
-
-    Returns:
-        StateDetector: 共享的检测器实例
-    """
+def get_detector() -> StateDetector:
+    """获取共享的 StateDetector 单例。"""
     global _detector_instance
     if _detector_instance is None:
-        _detector_instance = StateDetector(ref_path)
+        _detector_instance = StateDetector()
     return _detector_instance
