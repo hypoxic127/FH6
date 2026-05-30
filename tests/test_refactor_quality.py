@@ -141,7 +141,6 @@ class TestBP3TypeHints:
             "has_green_selection_border_padded",
             "has_cell_below",
             "read_text_in_roi",
-            "find_target_car",
             "crop_card_roi",
         ],
     )
