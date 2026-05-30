@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-FH6AutoBot.spec — PyInstaller 打包配置
-=======================================
+FH6AutoBot.spec — PyInstaller 打包配置（优化版）
+================================================
 用法:
     pyinstaller FH6AutoBot.spec
 
 生成: dist/FH6AutoBot/ 目录（--onedir 模式）
-包含: 所有 Python 模块，不包含 Tesseract/ViGEmBus（需用户自行安装）
+
+优化策略:
+    - 排除 PIL/Pillow（项目只用 OpenCV，不需要 Pillow）
+    - 排除 OpenCV 视频编解码（ffmpeg DLL，不需要视频功能）
+    - 排除 SSL/加密库（桌面自动化无网络需求）
+    - 排除 scipy openblas（项目不需要高级线性代数）
+    - 排除 pytest/setuptools 等开发工具
 """
 
 import os
@@ -57,24 +63,63 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[os.path.join(PROJECT_ROOT, "hook_utf8.py")],
     excludes=[
-        # 不需要打包的模块（减小体积）
-        "tkinter",
-        "unittest",
-        "email",
-        "html",
-        "http",
-        "xml",
-        "pydoc",
-        "doctest",
-        "tools",           # 开发工具不打包
-        "tests",           # 测试不打包
-        "setup",           # 安装脚本不打包
+        # === 不需要的 PIL 格式插件（通过 binary filter 移除大文件）===
+        # PIL 核心 (PIL.Image) 需保留 — pytesseract 依赖它
+        # 大格式插件 (_avif, _webp) 在下方 _exclude_binaries 中移除
+
+        # === 不需要的标准库模块 ===
+        "tkinter",             # GUI 框架
+        "unittest",            # 测试框架
+        "email",               # 邮件处理
+        "html",                # HTML 解析
+        "http",                # HTTP 客户端/服务器
+        "xml",                 # XML 解析
+        "xmlrpc",              # XML-RPC
+        "pydoc",               # 文档生成
+        "doctest",             # 文档测试
+        "ftplib",              # FTP 客户端
+        "imaplib",             # IMAP 客户端
+        "smtplib",             # SMTP 客户端
+        "poplib",              # POP3 客户端
+        "nntplib",             # NNTP 客户端
+        "telnetlib",           # Telnet 客户端
+        "ssl",                 # SSL/TLS（无网络需求）
+        "multiprocessing",     # 多进程（项目单进程）
+        "concurrent",          # 并发框架
+        "asyncio",             # 异步IO
+        "curses",              # 终端 UI
+
+        # === 不需要的开发工具 ===
+        "setuptools",
+        "pip",
+        "pkg_resources",
+        "pytest",
+        "ruff",
+        "tools",               # 本项目开发工具
+        "tests",               # 本项目测试
+        "setup",               # 本项目安装脚本
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
+# === 后处理: 移除不需要的大文件 ===
+# 从 binaries 列表中排除 OpenCV ffmpeg DLL 和 OpenBLAS（共节省 ~47 MB）
+_exclude_binaries = {
+    "opencv_videoio_ffmpeg",     # 27 MB — 视频编解码，不需要
+    "libcrypto",                 # 5 MB  — OpenSSL 加密库，不需要
+    "libssl",                    # 0.8 MB — OpenSSL，不需要
+    "_avif",                     # 7.5 MB — AVIF 图片格式（PIL），不需要
+    "_webp",                     # 0.4 MB — WebP 格式（PIL），不需要
+}
+
+a.binaries = [
+    (name, path, typecode)
+    for name, path, typecode in a.binaries
+    if not any(excl in name for excl in _exclude_binaries)
+]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
