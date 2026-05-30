@@ -177,6 +177,25 @@ html {
     gap: 12px;
     min-height: 0;
     overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* Thin scrollbar for left panel */
+.dashboard-left::-webkit-scrollbar {
+    width: 4px;
+}
+
+.dashboard-left::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dashboard-left::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+}
+
+.dashboard-left::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .dashboard-right {
