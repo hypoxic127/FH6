@@ -237,17 +237,21 @@ def read_skill_points(img: np.ndarray) -> int | None:
     except Exception:
         pass
 
-    # ===== OCR 识别：使用 PSM 7（单行文本模式） =====
-    # PSM 7 对技能点数字识别最精准，其它模式（PSM 8/13）容易误读
-    config = "--psm 7 -c tessedit_char_whitelist=0123456789"
-    result = None
-    try:
-        text = pytesseract.image_to_string(upscaled, config=config).strip()
-        if text.isdigit():
-            result = int(text)
-            safe_print(f"{Fore.CYAN}[OCR PSM7]{Style.RESET_ALL} 识别结果: {result}")
-    except Exception:
-        pass
+    # ===== 多策略 OCR：依次尝试不同的页面分割模式（PSM） =====
+    # PSM 8: 单个词（适合纯数字）
+    # PSM 7: 单行文本
+    # PSM 13: 原始行（不做任何预处理，最宽松）
+    results = []
+    for psm in [8, 7, 13]:
+        config = f"--psm {psm} -c tessedit_char_whitelist=0123456789"
+        try:
+            text = pytesseract.image_to_string(upscaled, config=config).strip()
+            if text.isdigit():
+                val = int(text)
+                results.append(val)
+                safe_print(f"{Fore.CYAN}[OCR PSM{psm}]{Style.RESET_ALL} 识别结果: {val}")
+        except Exception:
+            pass
 
     # ===== 投票机制：从多个 PSM 的结果中选取最可信的值 =====
     if results:
