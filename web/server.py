@@ -12,6 +12,7 @@ web/server.py — Flask + SocketIO Web 控制面板服务器
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import socket
@@ -24,7 +25,7 @@ from flask_socketio import SocketIO
 
 from engine.event_bus import get_bus
 from engine.runtime import get_base_dir
-from macro.master_loop import clear_stop, request_stop
+from macro.master_loop import BotStoppedError, clear_stop, request_stop
 from web.state_manager import get_state_manager
 
 # 抑制 Flask/Werkzeug 的请求日志和 WebSocket 升级错误
@@ -106,6 +107,8 @@ def handle_start_bot(data: dict[str, Any] | None = None) -> None:
             from macro import run_master_bot_loop
 
             run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy, loop=loop)
+        except BotStoppedError:
+            pass  # 正常停止，由 handle_stop_bot 发出日志
         except KeyboardInterrupt:
             pass
         except Exception as e:
@@ -118,11 +121,34 @@ def handle_start_bot(data: dict[str, Any] | None = None) -> None:
     _socketio.emit("bot_status", {"running": True})
 
 
+def _kill_thread(thread: threading.Thread) -> bool:
+    """向目标线程注入 BotStoppedError 异常，使其立即中断。
+
+    使用 CPython 私有 API PyThreadState_SetAsyncExc。
+    返回 True 表示注入成功。
+    """
+    if not thread.is_alive():
+        return False
+    tid = thread.ident
+    if tid is None:
+        return False
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_ulong(tid),
+        ctypes.py_object(BotStoppedError),
+    )
+    return res == 1
+
+
 @_socketio.on("stop_bot")
 def handle_stop_bot() -> None:
-    """停止 bot 线程。"""
+    """立即停止 bot 线程。"""
     _bot_stop_event.set()
     request_stop()
+
+    # 向 bot 线程注入异常，立即中断 time.sleep / I/O / 任何 Python 代码
+    if _bot_thread and _bot_thread.is_alive():
+        _kill_thread(_bot_thread)
+
     get_bus().emit("bot_stopped", {})
     _socketio.emit("bot_status", {"running": False})
     get_bus().emit("log", {"level": "warning", "msg": "⛔ Bot 已被 Web UI 手动停止"})
