@@ -12,10 +12,8 @@ FH6 AutoBot — 一键环境安装脚本
 """
 
 import os
-import shutil
 import subprocess
 import sys
-import zipfile
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOOLS_DIR = os.path.join(SCRIPT_DIR, "tools")

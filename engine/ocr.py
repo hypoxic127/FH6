@@ -5,7 +5,7 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 基于 OpenCV + Tesseract OCR 的游戏画面分析引擎，提供以下核心能力：
 
   1. OCR 文字识别
-     - read_skill_points(): 读取技能点数字（多 PSM 投票 + 零技能点保底）
+     - read_skill_points(): 读取技能点数字（PSM 7 单行模式 + 零技能点保底）
      - read_text_in_roi(): 通用 ROI 区域 OCR
 
   2. 模板匹配 + 目标定位
@@ -24,7 +24,6 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 """
 
 import os
-import sys
 
 import cv2
 import numpy as np
@@ -152,9 +151,8 @@ def read_skill_points(img):
     处理流程：
     1. 根据 2560×1440 参考分辨率的百分比坐标裁剪技能点区域
     2. 灰度化 → Otsu 自适应阈值二值化 → 加边距 → 放大 3 倍
-    3. 分别使用 PSM 8（单词）、PSM 7（单行）、PSM 13（原始行）三种模式识别
-    4. 投票机制：优先选择非零结果的多数一致值
-    5. 零技能点保底：如果所有 PSM 都返回 0，使用无限制 OCR 检测 "No Skill Points Available"
+    3. 使用 PSM 7（单行文本模式）识别数字，精度最高
+    4. 零技能点保底：如果 PSM 7 返回 0 或无结果，使用无限制 OCR 检测 "No Skill Points Available"
 
     参数:
         img: BGR 格式的游戏画面截图（原始分辨率）
@@ -165,73 +163,67 @@ def read_skill_points(img):
     h, w, _ = img.shape
 
     # 技能点数字位于暂停菜单 Car Mastery 区域下方（蓝底黑字）
-    # 手动标注确认：h: 73%-76%, w: 28%-31%
-    crop_y1 = int(h * 0.73)
-    crop_y2 = int(h * 0.76)
-    crop_x1 = int(w * 0.28)
-    crop_x2 = int(w * 0.31)
+    # 手动标注确认：h: 72%-77%, w: 28.5%-31.5%
+    crop_y1 = int(h * 0.72)
+    crop_y2 = int(h * 0.77)
+    crop_x1 = int(w * 0.285)
+    crop_x2 = int(w * 0.315)
 
     roi = img[crop_y1:crop_y2, crop_x1:crop_x2]
     if roi.size == 0:
         return None
 
-    # 保存调试图片（仅在调试模式下）
-    if DEBUG_WRITE_FILES:
-        cv2.imwrite("debug_skill_points_roi.png", roi)
+    # 每次都保存 ROI 原图到 debug/ 目录（便于排查识别问题）
+    try:
+        os.makedirs("debug", exist_ok=True)
+        cv2.imwrite("debug/skill_points_roi.png", roi)
+    except Exception:
+        pass
 
-    # 图像预处理：蓝底黑字 → 灰度反转 → Otsu 阈值
+    # 图像预处理：蓝底黑字 → 灰度 → Otsu 阈值 → 反转为黑字白底
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    inverted = cv2.bitwise_not(gray)  # 黑字变白字，蓝底变深底
-    _, thresh = cv2.threshold(inverted, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Tesseract 识别黑字白底效果最佳，确保数字为黑色、背景为白色
+    # 检测当前极性：如果边缘像素多为黑色，说明背景是黑色，需要反转
+    border_mean = (
+        thresh[0, :].mean() + thresh[-1, :].mean() +
+        thresh[:, 0].mean() + thresh[:, -1].mean()
+    ) / 4
+    if border_mean < 128:
+        # 白字黑底 → 反转为黑字白底
+        thresh = cv2.bitwise_not(thresh)
 
-    # 加大边距（30px）+ 放大 3 倍
-    padded = cv2.copyMakeBorder(thresh, 30, 30, 30, 30, cv2.BORDER_CONSTANT, value=[0, 0, 0])
-    upscaled = cv2.resize(padded, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+    # 加大边距（40px 白色）+ 放大 4 倍（提升 Tesseract 小字识别率）
+    padded = cv2.copyMakeBorder(thresh, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+    upscaled = cv2.resize(padded, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
 
-    if DEBUG_WRITE_FILES:
-        cv2.imwrite("debug_skill_points_processed.png", upscaled)
+    # 保存预处理后图片（便于排查）
+    try:
+        cv2.imwrite("debug/skill_points_processed.png", upscaled)
+    except Exception:
+        pass
 
-    # ===== 多策略 OCR：依次尝试不同的页面分割模式（PSM） =====
-    # PSM 8: 单个词（适合纯数字）
-    # PSM 7: 单行文本
-    # PSM 13: 原始行（不做任何预处理，最宽松）
-    results = []
-    for psm in [8, 7, 13]:
-        config = f"--psm {psm} -c tessedit_char_whitelist=0123456789"
-        try:
-            text = pytesseract.image_to_string(upscaled, config=config).strip()
-            if text.isdigit():
-                val = int(text)
-                results.append(val)
-                safe_print(f"{Fore.CYAN}[OCR PSM{psm}]{Style.RESET_ALL} 识别结果: {val}")
-        except Exception:
-            pass
+    # ===== OCR 识别：使用 PSM 7（单行文本模式） =====
+    # PSM 7 对技能点数字识别最精准，其它模式（PSM 8/13）容易误读
+    config = "--psm 7 -c tessedit_char_whitelist=0123456789"
+    result = None
+    try:
+        text = pytesseract.image_to_string(upscaled, config=config).strip()
+        if text.isdigit():
+            result = int(text)
+            safe_print(f"{Fore.CYAN}[OCR PSM7]{Style.RESET_ALL} 识别结果: {result}")
+    except Exception:
+        pass
 
-    # ===== 投票机制：从多个 PSM 的结果中选取最可信的值 =====
-    if results:
-        non_zero = [v for v in results if v > 0]
-        if non_zero:
-            # 有非零结果时，只在非零结果中投票（OCR 经常把有效数字误读为 0）
-            from collections import Counter
-
-            counter = Counter(non_zero)
-            most_common_val, most_common_count = counter.most_common(1)[0]
-            if most_common_count >= 2:
-                # 至少 2 个 PSM 给出相同结果 → 高置信度
-                safe_print(
-                    f"{Fore.GREEN}[OCR 投票]{Style.RESET_ALL} 非零多数一致: {most_common_val} (出现 {most_common_count} 次)"
-                )
-                return most_common_val
-            else:
-                # 非零结果不一致时，取最大值（保守策略，避免少算技能点）
-                best = max(non_zero)
-                safe_print(
-                    f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 非零无多数一致，取最大值: {best} (候选: {results})"
-                )
-                return best
-        else:
-            # 所有 PSM 都返回 0 → 需要进一步确认是否真的是零技能点
-            safe_print(f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 所有模式都识别为 0，进入零技能点保底确认...")
+    # ===== 结果判定 =====
+    if result is not None and result > 0:
+        safe_print(
+            f"{Fore.GREEN}[OCR PSM7]{Style.RESET_ALL} 技能点识别成功: {result}"
+        )
+        return result
+    elif result == 0:
+        # PSM 7 返回 0 → 需要进一步确认是否真的是零技能点
+        safe_print(f"{Fore.YELLOW}[OCR PSM7]{Style.RESET_ALL} 识别为 0，进入零技能点保底确认...")
 
     # ===== 零技能点保底机制 =====
     # 当数字白名单 OCR 未检测到任何数字时，执行无限制 OCR 扫描。

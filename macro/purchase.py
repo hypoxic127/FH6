@@ -6,7 +6,6 @@ macro/purchase.py — 5步购买导航 + 购买宏（纯 OCR 版）
 import time
 
 import cv2
-import numpy as np
 import pytesseract
 import vgamepad as vg
 
@@ -16,9 +15,7 @@ from engine.utils import find_game_window, log_error, log_info, log_success, log
 from engine.utils import press_button as _press_button
 from macro.core import (
     CARS_TO_PROCESS,
-    capture_raw_screenshot,
     capture_screenshot,
-    log_state_header,
     log_step_header,
 )
 

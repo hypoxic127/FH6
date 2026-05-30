@@ -54,6 +54,9 @@ def show_start_menu():
     print("  [4] 🗑️  卖车      (STATE_TRASH_CARS) — 在车库 Subaru 页使用")
     print("       进入车库 → 批量移除已升级完的 Impreza")
     print()
+    print("  [5] ⏭️  跳过买车  (刷点 → 加点 → 卖车 循环) — 在菜单使用")
+    print("       跳过买车阶段，适用于车库已有未加点的车")
+    print()
     print("  [0] 🔄  自动循环  (默认：从刷点开始完整循环) — 在菜单使用")
     print()
     print("=" * 50)
@@ -65,15 +68,17 @@ def show_start_menu():
         "2": STATE_BUY_CARS,
         "3": STATE_UPGRADE_CARS,
         "4": STATE_TRASH_CARS,
+        "5": STATE_FARM_POINTS,  # 跳过买车，从刷点开始循环
     }
 
     # 循环等待用户输入有效选项
     while True:
-        choice = input("  请选择起始阶段 [0-4] (默认 0): ").strip()
+        choice = input("  请选择起始阶段 [0-5] (默认 0): ").strip()
         if choice == "":
             choice = "0"  # 空输入视为选择默认项
         if choice in state_map:
             selected = state_map[choice]
+            skip_buy = choice == "5"
             # 状态常量到中文名称的映射（用于提示信息）
             names = {
                 None: "自动循环 (从刷点开始)",
@@ -82,16 +87,19 @@ def show_start_menu():
                 STATE_UPGRADE_CARS: "加技能点",
                 STATE_TRASH_CARS: "卖车",
             }
-            print(f"\n  ✅ 已选择: {names[selected]}")
+            if skip_buy:
+                print("\n  ✅ 已选择: 跳过买车循环 (刷点 → 加点 → 卖车)")
+            else:
+                print(f"\n  ✅ 已选择: {names[selected]}")
             print()
-            return selected
+            return selected, skip_buy
         else:
-            print("  ❌ 无效选择，请输入 0-4 之间的数字。")
+            print("  ❌ 无效选择，请输入 0-5 之间的数字。")
 
 
 if __name__ == "__main__":
     # 显示菜单并获取用户选择的起始状态
-    initial_state = show_start_menu()
+    initial_state, skip_buy = show_start_menu()
     # 启动全自动主控状态机无限闭环
     # run_master_bot_loop 会按 刷点→买车→加点→卖车 的顺序无限循环
-    run_master_bot_loop(initial_state=initial_state)
+    run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy)

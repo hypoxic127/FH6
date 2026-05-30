@@ -16,7 +16,6 @@ from engine.utils import log_error, log_info, log_success, log_warning
 from macro.core import (
     CARS_TO_PROCESS,
     MAX_SKILL_POINTS,
-    POINTS_PER_CAR,
     STATE_BUY_CARS,
     STATE_FARM_POINTS,
     STATE_TRASH_CARS,
@@ -48,12 +47,14 @@ from macro.purchase import (
 from macro.upgrade import action_upgrade_car_skills
 
 
-def run_master_bot_loop(initial_state: str | None = None) -> None:
+def run_master_bot_loop(initial_state: str | None = None, skip_buy: bool = False) -> None:
     """
     主控制状态机无限循环。
 
     状态转换顺序：
       STATE_FARM_POINTS -> STATE_BUY_CARS -> STATE_UPGRADE_CARS -> STATE_TRASH_CARS -> (循环)
+      当 skip_buy=True 时：
+      STATE_FARM_POINTS -> STATE_UPGRADE_CARS -> STATE_TRASH_CARS -> (循环，跳过买车)
 
     每个状态内部的异常会被捕获并重试，不会击坎整个状态机。
     支持通过 initial_state 参数从任意阶段开始运行。
@@ -103,7 +104,6 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
                     log_success("已按 B 键 4 次返回主页标签！")
 
                     current_state = STATE_UPGRADE_CARS
-                    reset_upgrade_position()  # 新买的车从头开始扫描
                     log_info("流程转换 [STATE_BUY_CARS] ===> [STATE_UPGRADE_CARS]")
                     time.sleep(1.0)
 
@@ -111,6 +111,7 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
 
                 elif current_state == STATE_UPGRADE_CARS:
                     log_state_header(STATE_UPGRADE_CARS, "对车库中的 NEW 车逐辆加点...")
+                    reset_upgrade_position()  # 每次进入加点阶段都从头扫描（删车/跳过买车后网格已变）
                     navigate_menu_to_garage(hwnd, gamepad)
                     upgraded_count = 0
                     while True:
@@ -313,8 +314,12 @@ def run_master_bot_loop(initial_state: str | None = None) -> None:
 
                     log_success(f"刷图阶段完成！技能点已验证到达 {MAX_SKILL_POINTS}！")
 
-                    current_state = STATE_BUY_CARS
-                    log_info("流程转换 [STATE_FARM_POINTS] ===> [STATE_BUY_CARS] (新一轮开始！)")
+                    if skip_buy:
+                        current_state = STATE_UPGRADE_CARS
+                        log_info("流程转换 [STATE_FARM_POINTS] ====> [STATE_UPGRADE_CARS] (跳过买车)")
+                    else:
+                        current_state = STATE_BUY_CARS
+                        log_info("流程转换 [STATE_FARM_POINTS] ====> [STATE_BUY_CARS] (新一轮开始！)")
                     loop_count += 1
                     time.sleep(2.0)
 

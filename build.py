@@ -73,7 +73,7 @@ def main() -> int:
         size_mb: float = os.path.getsize(exe_path) / (1024 * 1024)
         print()
         print("=" * 50)
-        print(f"  ✅ 打包成功！")
+        print("  ✅ 打包成功！")
         print(f"  📦 输出路径: {os.path.join(dist_dir, 'FH6AutoBot')}")
         print(f"  📄 可执行文件: {exe_path}")
         print(f"  📏 文件大小: {size_mb:.1f} MB")
