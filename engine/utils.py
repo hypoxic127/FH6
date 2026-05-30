@@ -88,24 +88,38 @@ def safe_print(msg):
             pass
 
 
+def _emit_log(level: str, msg: str) -> None:
+    """向事件总线发送日志事件（失败时静默忽略）。"""
+    try:
+        from engine.event_bus import get_bus
+
+        get_bus().emit("log", {"level": level, "msg": str(msg)})
+    except Exception:
+        pass
+
+
 def log_info(msg):
     """输出 [INFO] 级别日志（青色前缀）"""
     safe_print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} {msg}")
+    _emit_log("info", msg)
 
 
 def log_success(msg):
     """输出 [SUCCESS] 级别日志（绿色前缀）"""
     safe_print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} {msg}")
+    _emit_log("success", msg)
 
 
 def log_warning(msg):
     """输出 [WARNING] 级别日志（黄色前缀）"""
     safe_print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {msg}")
+    _emit_log("warning", msg)
 
 
 def log_error(msg):
     """输出 [ERROR] 级别日志（红色前缀）"""
     safe_print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} {msg}")
+    _emit_log("error", msg)
 
 
 # ==========================================
