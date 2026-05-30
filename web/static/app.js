@@ -186,6 +186,8 @@ function applyI18n() {
     document.querySelectorAll(".lang-option").forEach((el) => {
         el.classList.toggle("active", el.dataset.lang === currentLang);
     });
+    // Sync custom dropdown display text
+    if (typeof syncCustomSelect === "function") syncCustomSelect();
 }
 
 function setLang(lang) {
@@ -531,6 +533,61 @@ function toggleQR() {
 }
 
 // ==========================================
+// Custom Dropdown (自定义下拉菜单)
+// ==========================================
+const customSelect = document.getElementById("custom-select");
+const selectTrigger = document.getElementById("select-trigger");
+const selectDropdown = document.getElementById("select-dropdown");
+const selectDisplay = document.getElementById("select-display");
+const nativeSelect = document.getElementById("stage-select");
+
+// Toggle open/close
+selectTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    customSelect.classList.toggle("open");
+});
+
+// Close on click outside
+document.addEventListener("click", () => {
+    customSelect.classList.remove("open");
+});
+
+// Prevent dropdown clicks from closing
+selectDropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+});
+
+// Option selection
+selectDropdown.querySelectorAll(".custom-select-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+        // Update visual state
+        selectDropdown.querySelectorAll(".custom-select-option").forEach((o) => o.classList.remove("selected"));
+        opt.classList.add("selected");
+
+        // Update display text
+        selectDisplay.textContent = opt.textContent;
+
+        // Sync hidden native select
+        nativeSelect.value = opt.dataset.value;
+        nativeSelect.dispatchEvent(new Event("change"));
+
+        // Close
+        customSelect.classList.remove("open");
+    });
+});
+
+// Sync custom dropdown display from native select value
+function syncCustomSelect() {
+    const val = nativeSelect.value;
+    const match = selectDropdown.querySelector(`[data-value="${val}"]`);
+    if (match) {
+        selectDropdown.querySelectorAll(".custom-select-option").forEach((o) => o.classList.remove("selected"));
+        match.classList.add("selected");
+        selectDisplay.textContent = match.textContent;
+    }
+}
+
+// ==========================================
 // 本地状态持久化 (localStorage)
 // ==========================================
 const PREFS_KEY = "fh6_prefs";
@@ -551,6 +608,7 @@ function restorePrefs() {
         const prefs = JSON.parse(raw);
         if (prefs.stage) {
             document.getElementById("stage-select").value = prefs.stage;
+            syncCustomSelect();
         }
         if (prefs.autoLoop !== undefined) {
             document.getElementById("auto-loop").checked = prefs.autoLoop;

@@ -108,17 +108,28 @@
                     <div class="control-row">
                         <!-- Custom Select -->
                         <div class="control-group">
-                            <label for="stage-select" data-i18n="startStage">Start Stage</label>
-                            <div class="select-wrapper">
-                                <select id="stage-select">
-                                    <option value="STATE_FARM_POINTS" data-i18n="optFarm">🏎️ Farm Skill Points</option>
-                                    <option value="STATE_BUY_CARS" data-i18n="optBuy">🛒 Buy Cars</option>
-                                    <option value="STATE_UPGRADE_CARS" data-i18n="optUpgrade">⚡ Upgrade Cars</option>
-                                    <option value="STATE_TRASH_CARS" data-i18n="optSell">🗑️ Sell Cars</option>
-                                </select>
-                                <svg class="select-arrow" viewBox="0 0 16 16" fill="none">
-                                    <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
+                            <label data-i18n="startStage">Start Stage</label>
+                            <!-- Hidden native select for value storage -->
+                            <select id="stage-select" style="display:none">
+                                <option value="STATE_FARM_POINTS">🏎️ Farm Skill Points</option>
+                                <option value="STATE_BUY_CARS">🛒 Buy Cars</option>
+                                <option value="STATE_UPGRADE_CARS">⚡ Upgrade Cars</option>
+                                <option value="STATE_TRASH_CARS">🗑️ Sell Cars</option>
+                            </select>
+                            <!-- Custom Dropdown -->
+                            <div class="custom-select" id="custom-select">
+                                <button class="custom-select-trigger" id="select-trigger" type="button">
+                                    <span class="custom-select-value" id="select-display" data-i18n="optFarm">🏎️ Farm Skill Points</span>
+                                    <svg class="custom-select-arrow" viewBox="0 0 16 16" fill="none">
+                                        <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <div class="custom-select-dropdown" id="select-dropdown">
+                                    <div class="custom-select-option selected" data-value="STATE_FARM_POINTS" data-i18n="optFarm">🏎️ Farm Skill Points</div>
+                                    <div class="custom-select-option" data-value="STATE_BUY_CARS" data-i18n="optBuy">🛒 Buy Cars</div>
+                                    <div class="custom-select-option" data-value="STATE_UPGRADE_CARS" data-i18n="optUpgrade">⚡ Upgrade Cars</div>
+                                    <div class="custom-select-option" data-value="STATE_TRASH_CARS" data-i18n="optSell">🗑️ Sell Cars</div>
+                                </div>
                             </div>
                         </div>
 
