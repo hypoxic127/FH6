@@ -144,12 +144,76 @@ body::before {
     pointer-events: none;
 }
 
+/* --- Layout: App Shell (锁定视口, 禁止外滚) --- */
+html {
+    height: 100%;
+    overflow: hidden;
+}
+
 .container {
-    max-width: 1100px;
+    max-width: 1300px;
     margin: 0 auto;
-    padding: 20px 16px;
+    padding: 12px 20px;
     position: relative;
     z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* --- Dashboard: Left/Right Split (左控制 + 右监控) --- */
+.dashboard {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    min-height: 0; /* critical for flex overflow */
+}
+
+.dashboard-left {
+    flex: 0 0 38%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.dashboard-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Log section fills entire right column */
+.dashboard-right .log-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* --- Mobile: Stack vertically on narrow screens --- */
+@media (max-width: 1023px) {
+    html {
+        overflow: auto;
+    }
+
+    .container {
+        height: auto;
+        overflow: visible;
+        padding: 16px 12px;
+    }
+
+    .dashboard {
+        flex-direction: column;
+    }
+
+    .dashboard-left {
+        flex: none;
+        overflow-y: visible;
+    }
 }
 
 /* --- Header --- */
@@ -157,8 +221,8 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
-    margin-bottom: 24px;
+    padding: 10px 0;
+    margin-bottom: 12px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -387,12 +451,12 @@ body::before {
 .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .card {
-    padding: 16px;
+    padding: 12px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -512,7 +576,7 @@ body::before {
 
 /* --- Stage Progress --- */
 .progress-section {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .progress-bar {
@@ -1120,9 +1184,10 @@ body::before {
     border-color: rgba(0, 229, 200, 0.25);
 }
 
-/* Log container */
+/* Log container — fills available height in dashboard */
 .log-container {
-    height: 400px;
+    flex: 1;
+    min-height: 200px;
     overflow-y: auto;
     padding: 8px 0;
     font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
@@ -1216,9 +1281,6 @@ body::before {
 }
 
 /* --- Usage Guide --- */
-.guide-section {
-    margin-top: 20px;
-}
 
 .guide-summary {
     padding: 14px 16px;

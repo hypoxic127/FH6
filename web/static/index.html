@@ -100,105 +100,110 @@
             </div>
         </section>
 
-        <!-- Controls -->
-        <section class="controls">
-            <div class="control-row">
-                <!-- Custom Select -->
-                <div class="control-group">
-                    <label for="stage-select" data-i18n="startStage">Start Stage</label>
-                    <div class="select-wrapper">
-                        <select id="stage-select">
-                            <option value="STATE_FARM_POINTS" data-i18n="optFarm">🏎️ Farm Skill Points</option>
-                            <option value="STATE_BUY_CARS" data-i18n="optBuy">🛒 Buy Cars</option>
-                            <option value="STATE_UPGRADE_CARS" data-i18n="optUpgrade">⚡ Upgrade Cars</option>
-                            <option value="STATE_TRASH_CARS" data-i18n="optSell">🗑️ Sell Cars</option>
-                        </select>
-                        <svg class="select-arrow" viewBox="0 0 16 16" fill="none">
-                            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <!-- Toggle Switches -->
-                <div class="control-group">
-                    <label class="toggle-label">
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="auto-loop">
-                            <span class="toggle-slider"></span>
+        <!-- Dashboard: Left Controls + Right Log -->
+        <section class="dashboard">
+            <!-- Left Column: Controls + Guide -->
+            <div class="dashboard-left">
+                <div class="controls">
+                    <div class="control-row">
+                        <!-- Custom Select -->
+                        <div class="control-group">
+                            <label for="stage-select" data-i18n="startStage">Start Stage</label>
+                            <div class="select-wrapper">
+                                <select id="stage-select">
+                                    <option value="STATE_FARM_POINTS" data-i18n="optFarm">🏎️ Farm Skill Points</option>
+                                    <option value="STATE_BUY_CARS" data-i18n="optBuy">🛒 Buy Cars</option>
+                                    <option value="STATE_UPGRADE_CARS" data-i18n="optUpgrade">⚡ Upgrade Cars</option>
+                                    <option value="STATE_TRASH_CARS" data-i18n="optSell">🗑️ Sell Cars</option>
+                                </select>
+                                <svg class="select-arrow" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
                         </div>
-                        <span data-i18n="autoLoop">Auto Loop</span>
-                    </label>
-                </div>
-                <div class="control-group">
-                    <label class="toggle-label">
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="skip-buy">
-                            <span class="toggle-slider"></span>
+
+                        <!-- Toggle Switches -->
+                        <div class="control-group">
+                            <label class="toggle-label">
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="auto-loop">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                                <span data-i18n="autoLoop">Auto Loop</span>
+                            </label>
                         </div>
-                        <span data-i18n="skipBuy">Skip Buy</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Buttons -->
-            <div class="control-buttons">
-                <button id="btn-start" class="btn btn-start" onclick="startBot()">
-                    <span data-i18n="btnStart">▶ Start Bot</span>
-                </button>
-                <button id="btn-stop" class="btn btn-stop" onclick="stopBot()" disabled>
-                    <span data-i18n="btnStop">⏹ Stop Bot</span>
-                </button>
-                <button class="btn btn-clear btn-ghost" onclick="clearLogs()">
-                    <span data-i18n="btnClear">🗑 Clear Logs</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Log Console -->
-        <section class="log-section">
-            <div class="log-header">
-                <div class="log-header-left">
-                    <div class="traffic-lights">
-                        <span class="dot dot-red"></span>
-                        <span class="dot dot-yellow"></span>
-                        <span class="dot dot-green"></span>
+                        <div class="control-group">
+                            <label class="toggle-label">
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="skip-buy">
+                                    <span class="toggle-slider"></span>
+                                </div>
+                                <span data-i18n="skipBuy">Skip Buy</span>
+                            </label>
+                        </div>
                     </div>
-                    <h2 data-i18n="liveLogs">📜 Live Logs</h2>
-                </div>
-                <div class="log-header-right">
-                    <span id="log-count" class="log-counter">0 entries</span>
-                    <div class="log-toolbar">
-                        <button class="toolbar-btn" id="btn-autoscroll" onclick="toggleAutoScroll()" title="Auto Scroll">
-                            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
-                                <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+
+                    <!-- Buttons -->
+                    <div class="control-buttons">
+                        <button id="btn-start" class="btn btn-start" onclick="startBot()">
+                            <span data-i18n="btnStart">▶ Start Bot</span>
                         </button>
-                        <button class="toolbar-btn" onclick="copyLogs()" title="Copy">
-                            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
-                                <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                                <path d="M3 11V3.5A1.5 1.5 0 014.5 2H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                            </svg>
+                        <button id="btn-stop" class="btn btn-stop" onclick="stopBot()" disabled>
+                            <span data-i18n="btnStop">⏹ Stop Bot</span>
                         </button>
-                        <button class="toolbar-btn" onclick="downloadLogs()" title="Download">
-                            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
-                                <path d="M8 2v8M4 7l4 4 4-4M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                        <button class="btn btn-clear btn-ghost" onclick="clearLogs()">
+                            <span data-i18n="btnClear">🗑 Clear Logs</span>
                         </button>
                     </div>
                 </div>
-            </div>
-            <div id="log-container" class="log-container">
-                <div class="log-empty"><span class="typewriter" id="typewriter-text"></span><span class="blink-cursor">_</span></div>
-            </div>
-        </section>
 
-        <!-- Usage Guide -->
-        <section class="guide-section">
-            <details class="guide-details">
-                <summary class="guide-summary" data-i18n="guideTitle">📖 Usage Guide</summary>
-                <div class="guide-content" id="guide-content" data-i18n-html="guideContent">
+                <!-- Usage Guide -->
+                <details class="guide-details">
+                    <summary class="guide-summary" data-i18n="guideTitle">📖 Usage Guide</summary>
+                    <div class="guide-content" id="guide-content" data-i18n-html="guideContent">
+                    </div>
+                </details>
+            </div>
+
+            <!-- Right Column: Log Console -->
+            <div class="dashboard-right">
+                <div class="log-section">
+                    <div class="log-header">
+                        <div class="log-header-left">
+                            <div class="traffic-lights">
+                                <span class="dot dot-red"></span>
+                                <span class="dot dot-yellow"></span>
+                                <span class="dot dot-green"></span>
+                            </div>
+                            <h2 data-i18n="liveLogs">📜 Live Logs</h2>
+                        </div>
+                        <div class="log-header-right">
+                            <span id="log-count" class="log-counter">0 entries</span>
+                            <div class="log-toolbar">
+                                <button class="toolbar-btn" id="btn-autoscroll" onclick="toggleAutoScroll()" title="Auto Scroll">
+                                    <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                                        <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <button class="toolbar-btn" onclick="copyLogs()" title="Copy">
+                                    <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                                        <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                                        <path d="M3 11V3.5A1.5 1.5 0 014.5 2H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                                <button class="toolbar-btn" onclick="downloadLogs()" title="Download">
+                                    <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                                        <path d="M8 2v8M4 7l4 4 4-4M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="log-container" class="log-container">
+                        <div class="log-empty"><span class="typewriter" id="typewriter-text"></span><span class="blink-cursor">_</span></div>
+                    </div>
                 </div>
-            </details>
+            </div>
         </section>
     </div>
 
