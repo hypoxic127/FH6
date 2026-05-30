@@ -27,36 +27,30 @@ jobs:
           pip install pyinstaller
 
       - name: Build executable
-        run: python -m PyInstaller FH6AutoBot.spec --noconfirm
+        run: python -m PyInstaller packaging/FH6AutoBot.spec --noconfirm
 
       - name: Verify build output
         run: |
-          if (!(Test-Path "dist/FH6AutoBot/FH6AutoBot.exe")) {
+          if (!(Test-Path "dist/FH6AutoBot.exe")) {
             Write-Error "Build failed: FH6AutoBot.exe not found"
             exit 1
           }
-          $size = (Get-Item "dist/FH6AutoBot/FH6AutoBot.exe").Length / 1MB
+          $size = (Get-Item "dist/FH6AutoBot.exe").Length / 1MB
           Write-Host "Build successful! EXE size: $([math]::Round($size, 1)) MB"
-
-      - name: Create ZIP archive
-        run: |
-          Compress-Archive -Path "dist/FH6AutoBot/*" -DestinationPath "FH6AutoBot-${{ github.ref_name }}-win64.zip"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: FH6AutoBot-${{ github.ref_name }}-win64.zip
+          files: dist/FH6AutoBot.exe
           generate_release_notes: true
           body: |
             ## FH6 AutoBot ${{ github.ref_name }}
 
-            ### 安装说明
-            1. 下载并解压 `FH6AutoBot-${{ github.ref_name }}-win64.zip`
-            2. 确保已安装 [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/releases) 和 [ViGEmBus](https://github.com/ViGEm/ViGEmBus/releases)
-            3. 双击 `FH6AutoBot.exe` 运行
+            ### 下载
+            下载下方的 **FH6AutoBot.exe**，双击即可运行，无需解压。
 
             ### 系统要求
             - Windows 10/11 64-bit
-            - Tesseract OCR 5.x
-            - ViGEmBus 驱动
+            - [Tesseract OCR 5.x](https://github.com/UB-Mannheim/tesseract/releases)
+            - [ViGEmBus 驱动](https://github.com/ViGEm/ViGEmBus/releases)
             - Forza Horizon 6 (窗口化或无边框模式)
