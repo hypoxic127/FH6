@@ -1,5 +1,3 @@
-[🇨🇳 中文版](README_zh-CN.md)
-
 # 🏎️ FH6 AutoBot — Forza Horizon 6 Fully Automated AFK Farming Tool
 
 [![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
@@ -9,204 +7,184 @@
 > A fully automated, infinite-loop Skill Points farming system for
 > Forza Horizon 6, powered by **Computer Vision (OpenCV + Tesseract OCR)**
 > and **Virtual Gamepad (ViGEmBus)**.
+>
+> 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 与 **虚拟手柄 (ViGEmBus)** 的
+> Forza Horizon 6 全自动技能点无限循环系统。
 
 ---
 
-## 📋 Feature Overview
+## 📋 Feature Overview / 功能概述
 
-This tool implements a **fully automated closed-loop Skill Points farm** in
-Forza Horizon 6, covering the following four core stages in an infinite loop:
+This tool implements a **fully automated closed-loop Skill Points farm** covering four core stages in an infinite loop:
 
-| Stage | State Constant | Description |
-|-------|---------------|-------------|
-| 1️⃣ Farm Skill Points | `STATE_FARM_POINTS` | OCR scans current skill points → auto-enters EventLab blueprint to farm up to 999 |
-| 2️⃣ Buy Cars | `STATE_BUY_CARS` | Five-step visual navigation to Car Collection → batch-purchase 33 Subaru Impreza 22B-STIs |
-| 3️⃣ Upgrade Cars | `STATE_UPGRADE_CARS` | Enter garage → select each Impreza with a NEW tag → spend skill points on skill tree |
-| 4️⃣ Sell Cars | `STATE_TRASH_CARS` | Enter garage → batch-remove upgraded Imprezas (keeping the S2 main car) |
+本工具实现了技能点的 **全自动闭环刷取**，覆盖以下四个核心阶段，可无限循环运行：
+
+| Stage | State Constant | EN | 中文 |
+|-------|---------------|-----|------|
+| 1️⃣ | `STATE_FARM_POINTS` | OCR scans skill points → auto-enters EventLab to farm up to 999 | OCR 扫描技能点 → 自动进入 EventLab 刷满 999 |
+| 2️⃣ | `STATE_BUY_CARS` | Five-step visual navigation → batch-purchase 33 Subaru Impreza 22B-STIs | 五步视觉导航 → 批量购买 33 辆 Subaru Impreza |
+| 3️⃣ | `STATE_UPGRADE_CARS` | Select each Impreza with NEW tag → spend skill points | 逐辆选择 NEW 标签 Impreza → 消耗技能点升级 |
+| 4️⃣ | `STATE_TRASH_CARS` | Batch-remove upgraded Imprezas (keeping S2 main car) | 批量移除已升级 Impreza（保留 S2 主力车） |
 
 ---
 
-## 🏗️ Project Architecture
+## 🏗️ Project Architecture / 项目架构
 
 ```
 FH6_AutoBot/
-├── main_bot.py                # 🚀 Main entry point (interactive menu to choose starting stage)
+├── main_bot.py                # 🚀 Entry point / 主程序入口
 │
-├── engine/                    # 🧠 Perception Engine Layer
-│   ├── __init__.py            #    Package init (module docstring + backward-compat notes)
-│   ├── ocr.py                 #    Computer vision (OCR / template matching / color detection)
-│   ├── state_detect.py        #    Game state detector (color histogram + OCR hybrid)
-│   ├── runtime.py             #    PyInstaller runtime path compatibility layer
-│   └── utils.py               #    Utilities (logging / window ops / gamepad wrapper / MSS capture)
+├── engine/                    # 🧠 Perception Engine / 感知引擎层
+│   ├── ocr.py                 #    Computer vision (OCR + color detection)
+│   ├── state_detect.py        #    Game state detector (histogram + OCR hybrid)
+│   ├── runtime.py             #    PyInstaller runtime path resolution
+│   └── utils.py               #    Logging / window ops / gamepad / MSS capture
 │
-├── macro/                     # 🎮 Macro Operation Layer
-│   ├── __init__.py            #    Unified exports (entry point for all public APIs)
-│   ├── core.py                #    Infrastructure: screenshots, logging, config constants
-│   ├── master_loop.py         #    Master state machine loop (run_master_bot_loop)
+├── macro/                     # 🎮 Macro Operations / 宏操作层
+│   ├── core.py                #    Infrastructure: screenshots, logging, constants
+│   ├── master_loop.py         #    Master state machine (run_master_bot_loop)
 │   ├── navigation.py          #    Menu navigation, visual braking, return-to-garage
-│   ├── purchase.py            #    5-step Impreza purchase navigation + purchase macro
-│   ├── garage.py              #    Garage grid operations: select car, delete car, main car nav
-│   └── upgrade.py             #    Car upgrade macro (with Cannot Afford popup detection)
+│   ├── purchase.py            #    5-step Impreza purchase navigation
+│   ├── garage.py              #    Garage grid: select / delete / main car nav
+│   └── upgrade.py             #    Car upgrade macro (Cannot Afford detection)
 │
-├── farm/                      # 🏁 EventLab Farming
-│   ├── __init__.py            #    Package init
-│   └── skills.py              #    Visual state machine (auto-drive + RT boost + finish detection)
+├── farm/                      # 🏁 EventLab Farming / 刷图层
+│   └── skills.py              #    Visual state machine (auto-drive + finish detection)
 │
-├── tools/                     # 🔧 Developer Utilities (not packaged into exe)
-│   ├── debug_cars_roi.py      #    Quick screenshot + annotate car ROI regions
-│   ├── tool_annotate_roi.py   #    Interactive drag-to-draw ROI annotation tool
-│   ├── tool_calibrate_states.py  # State detection calibration (histogram/brightness capture)
-│   └── tool_mask_lines.py     #    Mask boundary line placement tool
+├── packaging/                 # 📦 Build & Packaging / 打包构建
+│   ├── build.py               #    One-click PyInstaller build script
+│   ├── FH6AutoBot.spec        #    PyInstaller spec (--onefile mode)
+│   └── hook_utf8.py           #    Runtime hook (Windows UTF-8 console fix)
 │
-├── tests/                     # 🧪 Unit Tests (66 test cases)
-│   ├── conftest.py            #    Fixtures + cross-platform mocks (Linux CI compatible)
-│   ├── test_ocr.py            #    HSV constants / green-box detection / keyword matching
-│   ├── test_farm_skills.py    #    Session calculation / checkpoint persistence
-│   ├── test_purchase.py       #    Fuzzy word matching (edit distance / OCR tolerance)
-│   ├── test_core.py           #    State constants / formula validation
-│   └── test_utils.py          #    Logging functions / MSS singleton
-│
-├── debug/                     # 🐛 Debug output (screenshots, calibration data)
+├── tools/                     # 🔧 Dev Utilities / 开发工具 (not packaged)
+├── tests/                     # 🧪 Unit Tests / 单元测试 (95 cases)
 │
 ├── .github/workflows/
-│   ├── ci.yml                 # ⚡ GitHub Actions CI (Ruff lint + pytest)
-│   └── release.yml            # 📦 Automated release (PyInstaller build + GitHub Release)
+│   ├── ci.yml                 # ⚡ CI (Ruff lint + pytest)
+│   └── release.yml            # 📦 Release (PyInstaller → GitHub Release)
 │
-├── build.py                   # 🔨 One-click PyInstaller build script
-├── FH6AutoBot.spec            # 📋 PyInstaller packaging configuration
-├── hook_utf8.py               # 🔤 PyInstaller runtime hook (Windows UTF-8 console fix)
-├── setup.py                   # ⚙️ One-click environment setup script
-├── requirements.txt           # 📋 Python dependency list
-├── ruff.toml                  # 🔍 Ruff linter configuration
-├── pytest.ini                 # 🧪 Pytest configuration
-├── race_state.json            # 💾 Race checkpoint persistence (auto-generated)
-└── play_archive.txt           # 📜 Session log archive
+├── setup.py                   # ⚙️ One-click environment setup
+├── requirements.txt           # 📋 Python dependencies
+├── ruff.toml                  # 🔍 Ruff linter config
+└── pytest.ini                 # 🧪 Pytest config
 ```
 
 ---
 
-## ⚙️ Dependencies
+## ⚙️ Dependencies / 依赖项
 
-| Dependency | Purpose |
-|-----------|---------|
-| `opencv-python` ≥ 4.8.0 | Image processing, template matching, color space conversion |
-| `pytesseract` ≥ 0.3.10 | OCR text recognition (requires Tesseract engine installed) |
-| `numpy` ≥ 1.24.0 | Numerical computing, image array operations |
-| `mss` ≥ 9.0.0 | High-performance screen capture |
-| `vgamepad` ≥ 0.1.0 | Virtual Xbox 360 gamepad driver (requires ViGEmBus installed) |
-| `colorama` ≥ 0.4.6 | Colored terminal log output |
+| Dependency | Purpose / 用途 |
+|-----------|----------------|
+| `opencv-python-headless` ≥ 4.8.0 | Image processing, color detection / 图像处理、颜色检测 |
+| `pytesseract` ≥ 0.3.10 | OCR text recognition / OCR 文字识别 |
+| `numpy` ≥ 1.24.0 | Numerical computing / 数值计算 |
+| `mss` ≥ 9.0.0 | High-performance screen capture / 高性能截图 |
+| `vgamepad` ≥ 0.1.0 | Virtual Xbox 360 gamepad / 虚拟手柄 (Windows only) |
+| `colorama` ≥ 0.4.6 | Colored terminal output / 终端彩色日志 |
 
-### Prerequisites
+### Prerequisites / 前置要求
 
-#### 🖥️ Software Environment
+#### 🖥️ Software / 软件环境
 1. **Python 3.10+**
-2. **Tesseract OCR** — [Download & Install](https://github.com/UB-Mannheim/tesseract/releases) (check "Add to PATH" during installation)
-3. **ViGEmBus** driver — [Download & Install](https://github.com/ViGEm/ViGEmBus/releases) (restart required after installation)
-4. The game must run in **Windowed** or **Borderless Windowed** mode
-5. Recommended resolution: **2560×1440** (visual detection is calibrated at this resolution)
+2. **Tesseract OCR** — [Download / 下载](https://github.com/UB-Mannheim/tesseract/releases) (check "Add to PATH" / 安装时勾选 Add to PATH)
+3. **ViGEmBus** driver — [Download / 下载](https://github.com/ViGEm/ViGEmBus/releases) (restart required / 安装后需重启)
+4. Game must run in **Windowed** or **Borderless Windowed** mode / 游戏需运行在 **窗口化** 或 **无边框窗口** 模式
+5. Recommended resolution / 建议分辨率: **2560×1440**
 
-#### 🎮 In-Game Preparation
-1. **Purchase the main car**: 1998 Subaru Impreza 22B-STI Version
-2. **Install an S2-class tune**: Apply any S2-class tune to the car (PI badge should display as blue)
-3. **Favorite the blueprint**: Search for and favorite blueprint share code `890169683` (used for EventLab auto-farming)
+#### 🎮 In-Game Preparation / 游戏内准备
+1. **Purchase main car / 购买主力车**: 1998 Subaru Impreza 22B-STI Version
+2. **Install S2 tune / 安装 S2 级改装**: Apply any S2-class tune (PI badge = blue / PI 徽章显示蓝色)
+3. **Favorite blueprint / 收藏蓝图**: Share code `890169683`
 
-> ⚠️ The S2 blue PI badge on the main car is the key indicator the program uses to distinguish "keep" cars from "deletable" cars — make sure to apply the tune.
+> ⚠️ The S2 blue PI badge is the key indicator to distinguish "keep" vs "deletable" cars.
+>
+> ⚠️ 主力车的 S2 蓝色 PI 徽章是程序区分"保留车"与"可删除车"的关键依据。
 
-### One-Click Install
+### One-Click Install / 一键安装
 
 ```bash
 python setup.py
 ```
 
-Automatically completes: Install Python dependencies → Detect Tesseract OCR → Detect ViGEmBus driver
-
 ---
 
-## 🚀 Usage
+## 🚀 Usage / 使用方法
 
-### Run from Source
+### Run from Source / 源码运行
 
 ```bash
 python main_bot.py
 ```
 
-The interactive menu provides the following options:
+| Option | EN | 中文 | When to Use / 使用场景 |
+|--------|-----|------|----------------------|
+| `[0]` | 🔄 Auto loop (full cycle) | 自动循环 | Main menu / 主菜单 |
+| `[1]` | 🏎️ Farm Skill Points | 刷技能点 | Main menu / 主菜单 |
+| `[2]` | 🛒 Buy Cars | 买车 | Main menu / 主菜单 |
+| `[3]` | ⚡ Upgrade Cars | 加技能点 | Main menu / 主菜单 |
+| `[4]` | 🗑️ Sell Cars | 卖车 | Garage (Subaru selected) / 车库斯巴鲁页 |
+| `[5]` | ⏭️ Skip Buy | 跳过买车 | Main menu / 车库已有未加点的车 |
 
-| Option | Description | When to Use |
-|--------|------------|-------------|
-| `[0]` | 🔄 Auto loop (full 4-stage cycle) | From the main menu |
-| `[1]` | 🏎️ Farm Skill Points | From the main menu |
-| `[2]` | 🛒 Buy Cars | From the main menu |
-| `[3]` | ⚡ Upgrade Cars | From the main menu |
-| `[4]` | 🗑️ Sell Cars | From the garage with Subaru brand selected |
-| `[5]` | ⏭️ Skip Buy (Farm → Upgrade → Sell loop) | From the main menu, when garage already has unupgraded cars |
-
-### Build Standalone Executable
+### Build Executable / 打包
 
 ```bash
-python build.py
+python packaging/build.py
 ```
 
-Produces `dist/FH6AutoBot/FH6AutoBot.exe` — a portable executable that does not require Python installed. Tesseract OCR and ViGEmBus driver are still required on the target machine.
+Produces `dist/FH6AutoBot.exe` — portable, no Python required. Tesseract & ViGEmBus still needed.
 
-### Automated Release
+生成 `dist/FH6AutoBot.exe` — 无需 Python 即可运行，仍需 Tesseract OCR 和 ViGEmBus。
 
-Pushing a version tag (e.g. `v1.0.0`) triggers the GitHub Actions release workflow, which builds the exe on `windows-latest` and publishes a ZIP archive as a GitHub Release.
+### Automated Release / 自动发布
+
+Push a version tag (e.g. `v1.2.0`) → GitHub Actions builds exe → publishes to GitHub Release.
+
+推送版本标签 → 自动构建 → 发布到 GitHub Release。
 
 ---
 
-## 🧪 Testing & CI
-
-### Run Tests Locally
+## 🧪 Testing & CI / 测试与 CI
 
 ```bash
-# Install test dependencies
 pip install pytest ruff
 
-# Run unit tests (hardware-dependent tests are auto-skipped)
-python -m pytest
-
-# Lint & format check
-python -m ruff check .
-python -m ruff format --check .
+python -m pytest                    # Run tests / 运行测试
+python -m ruff check .              # Lint
+python -m ruff format --check .     # Format check
 ```
 
-### GitHub Actions
-
-Every `push` and `pull_request` to the `main` branch automatically triggers the CI pipeline:
-
-| Job | Description |
-|-----|-------------|
-| **Lint** | Ruff code check + format validation |
-| **Test** | pytest runs 66 unit tests (ubuntu-latest, auto-mocks Windows dependencies) |
+| CI Job | Description / 描述 |
+|--------|-------------------|
+| **Lint** | Ruff check + format validation / 代码检查 + 格式校验 |
+| **Test** | pytest 95 tests on ubuntu-latest / 95 个测试用例 |
 
 ---
 
-## 🔍 Core Technical Principles
+## 🔍 Core Technical Principles / 核心技术原理
 
-### Visual State Detection
-- **Color Histogram + OCR Hybrid Detection**: StateDetector combines color distribution features with OCR text recognition to determine the current game UI state
-- **Inverse Detection**: A quirk of Forza menus — the currently active tab has a *lower* template match score (because the highlighted style differs from the template)
-- **PI Badge Color Detection**: Uses HSV color space to detect PI badge color and distinguish car classes (blue = S2 main car, orange = B-class deletable)
+### Visual State Detection / 视觉状态检测
+- **Histogram + OCR Hybrid** — StateDetector combines color distribution features with OCR / 颜色直方图 + OCR 混合检测
+- **PI Badge Color Detection** — HSV color space: blue = S2 main car, orange = deletable / PI 徽章颜色区分车辆等级
 
-### OCR Recognition
-- **Multi-Strategy Voting**: For the same region, recognition is performed using PSM 8/7/13 modes separately, and the majority-consistent result is chosen
-- **OTSU Adaptive Thresholding**: Available Points reading uses OTSU adaptive thresholding to prevent single-digit numbers from being erroneously padded with zeros
-- **Zero Skill Points Fallback**: When all digit OCR results return 0, unrestricted OCR is used to detect the "No Skill Points Available" text
+### OCR Recognition / OCR 识别
+- **Multi-PSM Voting** — PSM 8/7/13 modes, majority-consistent result wins / 多策略投票取多数一致结果
+- **OTSU Adaptive Thresholding** — Prevents single-digit zero-padding errors / 自适应阈值避免误加 0
+- **Zero Skill Points Fallback** — Detects "No Skill Points Available" text / 零技能点保底检测
 
-### Garage Grid Navigation
-- **Typewriter Traversal**: Scans the 3-row × N-column vehicle grid column by column, top to bottom
-- **Triple Verification Lock**: OCR car name keywords (2/3) + NEW yellow tag + LEGENDARY orange rarity
-- **NMS Deduplication**: Non-Maximum Suppression is applied to template matching results to prevent duplicate detection of the same vehicle
-- **Cannot Afford Popup Detection**: Monitors for the insufficient skill points popup in real-time during upgrades, auto-presses A to dismiss and stops purchasing
+### Garage Grid Navigation / 车库网格导航
+- **Typewriter Traversal** — Column by column, top to bottom (3×N grid) / 打字机走位逐列扫描
+- **Triple Verification** — OCR keywords (2/3) + NEW yellow tag + LEGENDARY orange rarity / 三重校验锁定
+- **Cannot Afford Detection** — Auto-dismisses popup, stops purchasing / 弹窗检测自动关闭
 
-### Build & Packaging
-- **PyInstaller One-Dir Mode**: `build.py` + `FH6AutoBot.spec` bundle all Python modules into a portable directory; vgamepad's `ViGEmClient.dll` is explicitly included as a data file
-- **Runtime Path Layer**: `engine/runtime.py` provides unified path resolution for both development and frozen (exe) environments
-- **UTF-8 Console Fix**: `hook_utf8.py` runtime hook ensures Chinese log output renders correctly on Windows consoles with non-UTF-8 defaults
+### Build & Packaging / 构建与打包
+- **PyInstaller --onefile** — Single 44MB exe / 单文件 44MB 可执行程序
+- **Runtime Path Layer** — `engine/runtime.py` unified path resolution / 统一路径解析
+- **UTF-8 Console Fix** — `hook_utf8.py` for Chinese log output on Windows / 中文日志控制台修复
 
 ---
 
-## 📝 License
+## 📝 License / 许可证
 
 This project is for learning and personal use only.
+
+本项目仅供学习与个人使用。
