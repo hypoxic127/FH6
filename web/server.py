@@ -26,8 +26,9 @@ from engine.event_bus import get_bus
 from engine.runtime import get_base_dir
 from web.state_manager import get_state_manager
 
-# 抑制 Flask/Werkzeug 的请求日志（否则刷屏）
-logging.getLogger("werkzeug").setLevel(logging.ERROR)
+# 抑制 Flask/Werkzeug 的请求日志和 WebSocket 升级错误
+# Python 3.14 + Werkzeug 会在 WS 升级时产生 "write() before start_response" 噪音
+logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
 
 # ==========================================
 # Flask 应用 + SocketIO
