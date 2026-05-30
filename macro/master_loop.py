@@ -47,18 +47,23 @@ from macro.purchase import (
 from macro.upgrade import action_upgrade_car_skills
 
 
-def run_master_bot_loop(initial_state: str | None = None, skip_buy: bool = False) -> None:
+def run_master_bot_loop(
+    initial_state: str | None = None,
+    skip_buy: bool = False,
+    loop: bool = True,
+) -> None:
     """
-    主控制状态机无限循环。
+    主控制状态机。
 
     状态转换顺序：
       STATE_FARM_POINTS -> STATE_BUY_CARS -> STATE_UPGRADE_CARS -> STATE_TRASH_CARS -> (循环)
       当 skip_buy=True 时：
       STATE_FARM_POINTS -> STATE_UPGRADE_CARS -> STATE_TRASH_CARS -> (循环，跳过买车)
 
-    每个状态内部的异常会被捕获并重试，不会击坎整个状态机。
-    支持通过 initial_state 参数从任意阶段开始运行。
-    用户可随时按 Ctrl+C 安全中止。
+    Args:
+        initial_state: 起始阶段，None 表示从 STATE_FARM_POINTS 开始
+        skip_buy: 是否跳过买车阶段
+        loop: True=无限循环所有阶段，False=只跑选中的阶段一次
     """
 
     hwnd = find_game_window()
@@ -104,7 +109,10 @@ def run_master_bot_loop(initial_state: str | None = None, skip_buy: bool = False
                     log_success("已按 B 键 4 次返回主页标签！")
 
                     current_state = STATE_UPGRADE_CARS
-                    log_info("流程转换 [STATE_BUY_CARS] ===> [STATE_UPGRADE_CARS]")
+                    log_info("流程转换 [STATE_BUY_CARS] ====> [STATE_UPGRADE_CARS]")
+                    if not loop:
+                        log_success("✅ 买车阶段完成（单次模式）")
+                        return
                     time.sleep(1.0)
 
                 # --- 2. 加点阶段 ---
@@ -193,7 +201,10 @@ def run_master_bot_loop(initial_state: str | None = None, skip_buy: bool = False
 
                     log_success(f"加点阶段完成！共加点 {upgraded_count - 1} 辆车")
                     current_state = STATE_TRASH_CARS
-                    log_info("流程转换 [STATE_UPGRADE_CARS] ===> [STATE_TRASH_CARS]")
+                    log_info("流程转换 [STATE_UPGRADE_CARS] ====> [STATE_TRASH_CARS]")
+                    if not loop:
+                        log_success("✅ 加点阶段完成（单次模式）")
+                        return
                     time.sleep(1.0)
 
                 # --- 3. 清理车库阶段 ---
@@ -216,7 +227,10 @@ def run_master_bot_loop(initial_state: str | None = None, skip_buy: bool = False
                         _press_button(gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_START, delay=2.0)
 
                     current_state = STATE_FARM_POINTS
-                    log_info("流程转换 [STATE_TRASH_CARS] ===> [STATE_FARM_POINTS]")
+                    log_info("流程转换 [STATE_TRASH_CARS] ====> [STATE_FARM_POINTS]")
+                    if not loop:
+                        log_success("✅ 卖车阶段完成（单次模式）")
+                        return
                     time.sleep(1.0)
 
                 # --- 4. 刷图阶段 ---
@@ -316,10 +330,13 @@ def run_master_bot_loop(initial_state: str | None = None, skip_buy: bool = False
 
                     if skip_buy:
                         current_state = STATE_UPGRADE_CARS
-                        log_info("流程转换 [STATE_FARM_POINTS] ====> [STATE_UPGRADE_CARS] (跳过买车)")
+                        log_info("流程转换 [STATE_FARM_POINTS] =====> [STATE_UPGRADE_CARS] (跳过买车)")
                     else:
                         current_state = STATE_BUY_CARS
-                        log_info("流程转换 [STATE_FARM_POINTS] ====> [STATE_BUY_CARS] (新一轮开始！)")
+                        log_info("流程转换 [STATE_FARM_POINTS] =====> [STATE_BUY_CARS] (新一轮开始！)")
+                    if not loop:
+                        log_success("✅ 刷点阶段完成（单次模式）")
+                        return
                     loop_count += 1
                     time.sleep(2.0)
 

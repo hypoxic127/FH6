@@ -62,10 +62,12 @@ socket.on("log", (data) => {
 function startBot() {
     const stageSelect = document.getElementById("stage-select");
     const skipBuy = document.getElementById("skip-buy").checked;
+    const autoLoop = document.getElementById("auto-loop").checked;
 
     socket.emit("start_bot", {
         initial_state: stageSelect.value || null,
         skip_buy: skipBuy,
+        loop: autoLoop,
     });
 
     botRunning = true;

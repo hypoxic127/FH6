@@ -87,6 +87,7 @@ def handle_start_bot(data: dict[str, Any] | None = None) -> None:
 
     initial_state = data.get("initial_state")
     skip_buy = data.get("skip_buy", False)
+    loop = data.get("loop", False)
 
     _bot_stop_event.clear()
 
@@ -98,7 +99,7 @@ def handle_start_bot(data: dict[str, Any] | None = None) -> None:
 
             from macro import run_master_bot_loop
 
-            run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy)
+            run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy, loop=loop)
         except KeyboardInterrupt:
             pass
         except Exception as e:
