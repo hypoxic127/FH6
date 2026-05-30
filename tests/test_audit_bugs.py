@@ -43,9 +43,7 @@ class TestBug1PurchaseImportPath:
             try:
                 _detect_playing(None)
             except ModuleNotFoundError as exc:
-                pytest.fail(
-                    f"BUG-1: _detect_playing 使用了错误的导入路径: {exc}"
-                )
+                pytest.fail(f"BUG-1: _detect_playing 使用了错误的导入路径: {exc}")
 
     def test_detect_campaign_no_module_not_found(self) -> None:
         """_detect_campaign 调用时不应抛出 ModuleNotFoundError。"""
@@ -58,33 +56,23 @@ class TestBug1PurchaseImportPath:
             try:
                 _detect_campaign(None)
             except ModuleNotFoundError as exc:
-                pytest.fail(
-                    f"BUG-1: _detect_campaign 使用了错误的导入路径: {exc}"
-                )
+                pytest.fail(f"BUG-1: _detect_campaign 使用了错误的导入路径: {exc}")
 
     def test_detect_playing_source_has_correct_import(self) -> None:
         """_detect_playing 源码中应引用 engine.state_detect。"""
         from macro.purchase import _detect_playing
 
         source: str = inspect.getsource(_detect_playing)
-        assert "from module_state_detect" not in source, (
-            "BUG-1: _detect_playing 仍使用旧模块名 'module_state_detect'"
-        )
-        assert "engine.state_detect" in source, (
-            "_detect_playing 应从 'engine.state_detect' 导入"
-        )
+        assert "from module_state_detect" not in source, "BUG-1: _detect_playing 仍使用旧模块名 'module_state_detect'"
+        assert "engine.state_detect" in source, "_detect_playing 应从 'engine.state_detect' 导入"
 
     def test_detect_campaign_source_has_correct_import(self) -> None:
         """_detect_campaign 源码中应引用 engine.state_detect。"""
         from macro.purchase import _detect_campaign
 
         source: str = inspect.getsource(_detect_campaign)
-        assert "from module_state_detect" not in source, (
-            "BUG-1: _detect_campaign 仍使用旧模块名 'module_state_detect'"
-        )
-        assert "engine.state_detect" in source, (
-            "_detect_campaign 应从 'engine.state_detect' 导入"
-        )
+        assert "from module_state_detect" not in source, "BUG-1: _detect_campaign 仍使用旧模块名 'module_state_detect'"
+        assert "engine.state_detect" in source, "_detect_campaign 应从 'engine.state_detect' 导入"
 
 
 # ================================================================
@@ -104,14 +92,9 @@ class TestBug2CoreMssResetPath:
         lines: list[str] = [line.strip() for line in source.split("\n")]
 
         bad_lines: list[str] = [
-            line
-            for line in lines
-            if line == "import utils"
-            or line.startswith("from utils import")
+            line for line in lines if line == "import utils" or line.startswith("from utils import")
         ]
-        assert not bad_lines, (
-            f"BUG-2: capture_screenshot 仍使用裸 'utils' 模块路径: {bad_lines}"
-        )
+        assert not bad_lines, f"BUG-2: capture_screenshot 仍使用裸 'utils' 模块路径: {bad_lines}"
 
 
 # ================================================================
@@ -129,8 +112,7 @@ class TestBug3DeleteColUnderflow:
 
         source: str = inspect.getsource(_scan_and_delete_cars)
         assert "current_col -= 1" not in source, (
-            "BUG-3: _scan_and_delete_cars 存在未保护的 "
-            "'current_col -= 1'，col=1 时会下溢到 0"
+            "BUG-3: _scan_and_delete_cars 存在未保护的 'current_col -= 1'，col=1 时会下溢到 0"
         )
 
     def test_col_clamp_logic_present(self) -> None:
@@ -139,9 +121,7 @@ class TestBug3DeleteColUnderflow:
 
         source: str = inspect.getsource(_scan_and_delete_cars)
         # 修复后应包含 max(1, current_col - 1) 或类似防护
-        assert "max(1," in source, (
-            "BUG-3: _scan_and_delete_cars 缺少 max(1, ...) 列号下溢防护"
-        )
+        assert "max(1," in source, "BUG-3: _scan_and_delete_cars 缺少 max(1, ...) 列号下溢防护"
 
 
 # ================================================================
@@ -158,12 +138,7 @@ class TestEdge5PiDetectionConservative:
         from engine.ocr import check_is_high_class
 
         # 全黑 1600×900 图像 — PI 徽章区域无蓝色也无橙色
-        black_image: np.ndarray = np.zeros(
-            (900, 1600, 3), dtype=np.uint8
-        )
+        black_image: np.ndarray = np.zeros((900, 1600, 3), dtype=np.uint8)
         result: bool = check_is_high_class(black_image, 800, 450)
 
-        assert result is True, (
-            "EDGE-5: check_is_high_class 在颜色不明确时返回 False，"
-            "可能导致误删 S2 主力车"
-        )
+        assert result is True, "EDGE-5: check_is_high_class 在颜色不明确时返回 False，可能导致误删 S2 主力车"

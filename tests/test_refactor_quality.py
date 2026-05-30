@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 tests/test_refactor_quality.py ΓÇö Σ╗úτáüΦ┤¿ΘçÅΘçìµ₧äσ¢₧σ╜Æµ╡ïΦ»ò
 =====================================================
@@ -85,13 +85,9 @@ class TestCropCardRoi:
 
         for fn in [verify_new_target_car, check_new_tag_only, check_is_high_class]:
             source: str = inspect.getsource(fn)
-            assert "crop_card_roi" in source, (
-                f"{fn.__name__} σ║öΣ╜┐τö¿ crop_card_roi() ΦÇîΘ¥₧σåàΦüöΦúüσë¬"
-            )
+            assert "crop_card_roi" in source, f"{fn.__name__} σ║öΣ╜┐τö¿ crop_card_roi() ΦÇîΘ¥₧σåàΦüöΦúüσë¬"
             # τí«Σ┐¥µ▓íµ£ëµ«ïτòÖτÜäµùºΦúüσë¬µ¿íσ╝Å
-            assert "cursor_x - crop_w // 2" not in source, (
-                f"{fn.__name__} Σ╗ìσîàσÉ½µùºτÜäσåàΦüöΦúüσë¬Σ╗úτáü"
-            )
+            assert "cursor_x - crop_w // 2" not in source, f"{fn.__name__} Σ╗ìσîàσÉ½µùºτÜäσåàΦüöΦúüσë¬Σ╗úτáü"
 
 
 # ================================================================
@@ -155,9 +151,7 @@ class TestBP3TypeHints:
 
         fn = getattr(ocr_module, func_name)
         sig = inspect.signature(fn)
-        assert sig.return_annotation is not inspect.Parameter.empty, (
-            f"BP-3: {func_name}() τ╝║σ░æΦ┐öσ¢₧σÇ╝τ▒╗σ₧ïµáçµ│¿"
-        )
+        assert sig.return_annotation is not inspect.Parameter.empty, f"BP-3: {func_name}() τ╝║σ░æΦ┐öσ¢₧σÇ╝τ▒╗σ₧ïµáçµ│¿"
 
 
 # ================================================================
@@ -173,12 +167,8 @@ class TestPerf3Resize:
         from macro.core import capture_screenshot
 
         source: str = inspect.getsource(capture_screenshot)
-        assert "INTER_LINEAR" in source, (
-            "PERF-3: capture_screenshot σ║öΣ╜┐τö¿ cv2.INTER_LINEAR"
-        )
-        assert "INTER_AREA" not in source, (
-            "PERF-3: capture_screenshot Σ╕ìσ║öΣ╜┐τö¿ cv2.INTER_AREA"
-        )
+        assert "INTER_LINEAR" in source, "PERF-3: capture_screenshot σ║öΣ╜┐τö¿ cv2.INTER_LINEAR"
+        assert "INTER_AREA" not in source, "PERF-3: capture_screenshot Σ╕ìσ║öΣ╜┐τö¿ cv2.INTER_AREA"
 
 
 # ================================================================
@@ -198,9 +188,7 @@ class TestPerf4CursorCropBeforeHSV:
         #   hsv = cv2.cvtColor(image, ...)
         #   mask[:, :int(img_w * 0.21)] = 0
         # µû░µ¿íσ╝Å: σàêΦúüσë¬σåìΦ╜¼µìó
-        assert "cvtColor(image," not in source, (
-            "PERF-4: find_cursor_position σ║öσàêΦúüσë¬µ£ëµòêσî║σƒƒσåìσüÜ HSV Φ╜¼µìó"
-        )
+        assert "cvtColor(image," not in source, "PERF-4: find_cursor_position σ║öσàêΦúüσë¬µ£ëµòêσî║σƒƒσåìσüÜ HSV Φ╜¼µìó"
 
     def test_returns_correct_for_green_rect(self) -> None:
         """σ£¿σ╖▓τƒÑΣ╜ìτ╜«τö╗Σ╕ÇΣ╕¬τ╗┐Φë▓τƒ⌐σ╜ó∩╝îσ║öΦâ╜µ¡úτí«µúÇµ╡ïσê░πÇé"""
@@ -212,9 +200,9 @@ class TestPerf4CursorCropBeforeHSV:
         cx, cy, w, h = 600, 400, 200, 150
         x1, y1 = cx - w // 2, cy - h // 2
         # τö╗ 4 µ¥íΦ╛╣µíåτ║┐∩╝êσÄÜ 5px∩╝ë
-        image[y1 : y1 + 5, x1 : x1 + w] = green_bgr        # Σ╕è
+        image[y1 : y1 + 5, x1 : x1 + w] = green_bgr  # Σ╕è
         image[y1 + h - 5 : y1 + h, x1 : x1 + w] = green_bgr  # Σ╕ï
-        image[y1 : y1 + h, x1 : x1 + 5] = green_bgr        # σ╖ª
+        image[y1 : y1 + h, x1 : x1 + 5] = green_bgr  # σ╖ª
         image[y1 : y1 + h, x1 + w - 5 : x1 + w] = green_bgr  # σÅ│
 
         result = find_cursor_position(image)
