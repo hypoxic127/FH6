@@ -17,6 +17,11 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+# vgamepad 是 Windows 专用包（依赖 ViGEmBus 驱动），在 Linux CI 上不可用。
+# 该文件中的测试通过 macro.purchase / macro.garage 间接导入 vgamepad，
+# 因此在 vgamepad 不可用时跳过整个模块。
+vgamepad = pytest.importorskip("vgamepad", reason="vgamepad requires Windows + ViGEmBus driver")
+
 
 # ================================================================
 # BUG-1: purchase.py _detect_playing / _detect_campaign
