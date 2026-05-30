@@ -102,7 +102,7 @@ const I18N = {
         waitingConnection: "Waiting for connection...",
         logsCleared: "Logs cleared",
         entries: "entries",
-        langToggle: "🌐 中文",
+        logsCopied: "✅ Logs copied to clipboard",
         stateIdle: "Idle",
         stateFarm: "Farm Points",
         stateBuy: "Buy Cars",
@@ -138,7 +138,7 @@ const I18N = {
         waitingConnection: "等待连接...",
         logsCleared: "日志已清空",
         entries: "条",
-        langToggle: "🌐 English",
+        logsCopied: "✅ 日志已复制到剪贴板",
         stateIdle: "空闲",
         stateFarm: "刷技能点",
         stateBuy: "买车",
@@ -289,6 +289,56 @@ function clearLogs() {
     document.getElementById("log-count").textContent = `0 ${t("entries")}`;
 }
 
+function toggleAutoScroll() {
+    autoScroll = !autoScroll;
+    const btn = document.getElementById("btn-autoscroll");
+    btn.classList.toggle("active", autoScroll);
+    if (autoScroll) {
+        const container = document.getElementById("log-container");
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function copyLogs() {
+    const entries = document.querySelectorAll(".log-entry");
+    const text = Array.from(entries).map((el) => el.textContent).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(t("logsCopied"));
+    });
+}
+
+function downloadLogs() {
+    const entries = document.querySelectorAll(".log-entry");
+    const text = Array.from(entries).map((el) => el.textContent).join("\n");
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fh6_autobot_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function showToast(msg) {
+    let toast = document.getElementById("toast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "toast";
+        toast.style.cssText = `
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: rgba(16,22,40,0.9); color: var(--neon-cyan);
+            border: 1px solid rgba(0,229,200,0.3); border-radius: 8px;
+            padding: 8px 20px; font-size: 0.82rem; backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 9999;
+            opacity: 0; transition: opacity 0.3s;
+        `;
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = "1";
+    setTimeout(() => { toast.style.opacity = "0"; }, 2000);
+}
+
 function updateButtons() {
     document.getElementById("btn-start").disabled = botRunning;
     document.getElementById("btn-stop").disabled = !botRunning;
@@ -416,7 +466,11 @@ function escapeHtml(text) {
 // ==========================================
 document.getElementById("log-container").addEventListener("scroll", function () {
     const el = this;
-    autoScroll = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+    const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+    if (autoScroll !== isAtBottom) {
+        autoScroll = isAtBottom;
+        document.getElementById("btn-autoscroll").classList.toggle("active", autoScroll);
+    }
 });
 
 // ==========================================
@@ -456,6 +510,26 @@ function toggleQR() {
 }
 
 // ==========================================
-// 初始化 i18n
+// 初始化
 // ==========================================
 applyI18n();
+
+// Auto-scroll button default active
+document.getElementById("btn-autoscroll").classList.add("active");
+
+// Typewriter effect for waiting text
+(function typewriter() {
+    const el = document.getElementById("typewriter-text");
+    if (!el) return;
+    const text = t("waitingConnection");
+    let i = 0;
+    function tick() {
+        if (!el.parentElement) return; // removed by log entries
+        el.textContent = text.slice(0, i + 1);
+        i++;
+        if (i < text.length) {
+            setTimeout(tick, 60);
+        }
+    }
+    tick();
+})();

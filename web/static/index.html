@@ -154,11 +154,38 @@
         <!-- Log Console -->
         <section class="log-section">
             <div class="log-header">
-                <h2 data-i18n="liveLogs">📜 Live Logs</h2>
-                <span id="log-count" class="log-counter">0 entries</span>
+                <div class="log-header-left">
+                    <div class="traffic-lights">
+                        <span class="dot dot-red"></span>
+                        <span class="dot dot-yellow"></span>
+                        <span class="dot dot-green"></span>
+                    </div>
+                    <h2 data-i18n="liveLogs">📜 Live Logs</h2>
+                </div>
+                <div class="log-header-right">
+                    <span id="log-count" class="log-counter">0 entries</span>
+                    <div class="log-toolbar">
+                        <button class="toolbar-btn" id="btn-autoscroll" onclick="toggleAutoScroll()" title="Auto Scroll">
+                            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                                <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <button class="toolbar-btn" onclick="copyLogs()" title="Copy">
+                            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                                <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                                <path d="M3 11V3.5A1.5 1.5 0 014.5 2H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <button class="toolbar-btn" onclick="downloadLogs()" title="Download">
+                            <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+                                <path d="M8 2v8M4 7l4 4 4-4M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div id="log-container" class="log-container">
-                <div class="log-empty" data-i18n="waitingConnection">Waiting for connection...</div>
+                <div class="log-empty"><span class="typewriter" id="typewriter-text"></span><span class="blink-cursor">_</span></div>
             </div>
         </section>
 
