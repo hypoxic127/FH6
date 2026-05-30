@@ -56,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install opencv-python-headless>=4.8.0 pytesseract>=0.3.10 numpy>=1.24.0 colorama>=0.4.6
+          pip install -r requirements.txt
           pip install pytest>=8.0.0
 
       - name: Run unit tests
