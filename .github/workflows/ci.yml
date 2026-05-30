@@ -21,6 +21,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Force LF line endings
+        run: |
+          git config core.autocrlf false
+          git config core.eol lf
+          git rm --cached -r . > /dev/null 2>&1
+          git reset HEAD -- . > /dev/null 2>&1
+          git checkout -- .
+
       - name: Install Ruff
         run: pip install ruff==0.15.15
 
