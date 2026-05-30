@@ -15,6 +15,7 @@
                 <span class="subtitle" data-i18n="subtitle">Forza Horizon 6 AFK Farming</span>
             </div>
             <div class="header-right">
+                <button id="qr-toggle" class="btn btn-lang" onclick="toggleQR()">📱 QR</button>
                 <button id="lang-toggle" class="btn btn-lang" onclick="toggleLang()">🌐 中文</button>
                 <span id="connection-status" class="badge badge-disconnected" data-i18n="disconnected">⚡ Disconnected</span>
             </div>
@@ -132,7 +133,17 @@
         </section>
     </div>
 
+    <!-- QR Code Overlay -->
+    <div id="qr-overlay" class="qr-overlay" onclick="toggleQR()">
+        <div class="qr-modal" onclick="event.stopPropagation()">
+            <div class="qr-title" data-i18n="qrTitle">📱 Scan to access on mobile</div>
+            <div id="qr-canvas"></div>
+            <div id="qr-url" class="qr-url"></div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="/static/app.js"></script>
 </body>
 </html>

@@ -51,6 +51,7 @@ _socketio: SocketIO = SocketIO(
 # Bot 线程引用
 _bot_thread: threading.Thread | None = None
 _bot_stop_event: threading.Event = threading.Event()
+_lan_url: str = ""
 
 
 # ==========================================
@@ -67,9 +68,11 @@ def index() -> str:
 # ==========================================
 @_socketio.on("connect")
 def handle_connect() -> None:
-    """客户端连接时推送当前状态和最近日志。"""
+    """客户端连接时推送当前状态、最近日志和局域网地址。"""
     manager = get_state_manager()
     _socketio.emit("state_update", manager.get_state())
+    if _lan_url:
+        _socketio.emit("lan_url", {"url": _lan_url})
     for log_entry in manager.get_recent_logs():
         _socketio.emit("log", log_entry)
 
@@ -180,7 +183,9 @@ def start_server(port: int = 6800) -> None:
     # 桥接事件到 WebSocket
     _bridge_events()
 
+    global _lan_url
     local_ip = _get_local_ip()
+    _lan_url = f"http://{local_ip}:{port}"
     from engine.utils import safe_print
 
     safe_print("")

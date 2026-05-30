@@ -110,6 +110,7 @@ const I18N = {
         stateSell: "Sell Cars",
         guideTitle: "📖 Usage Guide",
         guideContent: GUIDE_EN,
+        qrTitle: "📱 Scan to access on mobile",
     },
     zh: {
         subtitle: "Forza Horizon 6 全自动挂机工具",
@@ -145,6 +146,7 @@ const I18N = {
         stateSell: "卖车",
         guideTitle: "📖 使用说明",
         guideContent: GUIDE_ZH,
+        qrTitle: "📱 扫码手机访问",
     },
 };
 
@@ -375,6 +377,33 @@ setInterval(() => {
         socket.emit("get_state");
     }
 }, 5000);
+
+// ==========================================
+// QR Code
+// ==========================================
+let lanUrl = "";
+
+socket.on("lan_url", (data) => {
+    lanUrl = data.url;
+    generateQR(lanUrl);
+});
+
+function generateQR(url) {
+    const canvas = document.getElementById("qr-canvas");
+    canvas.innerHTML = "";
+    if (!url || typeof qrcode === "undefined") return;
+
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    canvas.innerHTML = qr.createImgTag(5, 0);
+    document.getElementById("qr-url").textContent = url;
+}
+
+function toggleQR() {
+    const overlay = document.getElementById("qr-overlay");
+    overlay.classList.toggle("visible");
+}
 
 // ==========================================
 // 初始化 i18n
