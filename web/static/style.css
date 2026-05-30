@@ -169,6 +169,35 @@ body::after {
     border: 1px solid rgba(255, 45, 120, 0.25);
 }
 
+.badge-disconnected.reconnecting {
+    color: var(--neon-orange);
+    border-color: rgba(255, 140, 34, 0.35);
+    background: rgba(255, 140, 34, 0.1);
+    animation: reconnectPulse 1.5s ease-in-out infinite;
+}
+
+.badge-disconnected.reconnecting::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--neon-orange);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes reconnectPulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 12px rgba(255, 140, 34, 0.2); }
+}
+
 /* --- Icon Buttons (QR / Lang) --- */
 .btn-icon {
     width: 36px;

@@ -103,6 +103,7 @@ const I18N = {
         logsCleared: "Logs cleared",
         entries: "entries",
         logsCopied: "✅ Logs copied to clipboard",
+        reconnecting: "⚡ Reconnecting (#{n})...",
         stateIdle: "Idle",
         stateFarm: "Farm Points",
         stateBuy: "Buy Cars",
@@ -139,6 +140,7 @@ const I18N = {
         logsCleared: "日志已清空",
         entries: "条",
         logsCopied: "✅ 日志已复制到剪贴板",
+        reconnecting: "⚡ 正在重连 (#{n})...",
         stateIdle: "空闲",
         stateFarm: "刷技能点",
         stateBuy: "买车",
@@ -221,12 +223,26 @@ socket.on("connect", () => {
     const badge = document.getElementById("connection-status");
     badge.textContent = t("connected");
     badge.className = "badge badge-connected";
+    badge.classList.remove("reconnecting");
 });
 
 socket.on("disconnect", () => {
     const badge = document.getElementById("connection-status");
     badge.textContent = t("disconnected");
     badge.className = "badge badge-disconnected";
+});
+
+socket.io.on("reconnect_attempt", (attempt) => {
+    const badge = document.getElementById("connection-status");
+    badge.textContent = t("reconnecting").replace("{n}", attempt);
+    badge.className = "badge badge-disconnected reconnecting";
+});
+
+socket.io.on("reconnect", () => {
+    const badge = document.getElementById("connection-status");
+    badge.textContent = t("connected");
+    badge.className = "badge badge-connected";
+    badge.classList.remove("reconnecting");
 });
 
 // ==========================================
@@ -370,7 +386,8 @@ function appendLog(data) {
         container.scrollTop = container.scrollHeight;
     }
 
-    while (container.children.length > 1000) {
+    // DOM performance: cap at 500 entries
+    while (container.children.length > 500) {
         container.removeChild(container.firstChild);
     }
 }
@@ -510,8 +527,47 @@ function toggleQR() {
 }
 
 // ==========================================
+// 本地状态持久化 (localStorage)
+// ==========================================
+const PREFS_KEY = "fh6_prefs";
+
+function savePrefs() {
+    const prefs = {
+        stage: document.getElementById("stage-select").value,
+        autoLoop: document.getElementById("auto-loop").checked,
+        skipBuy: document.getElementById("skip-buy").checked,
+    };
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+}
+
+function restorePrefs() {
+    try {
+        const raw = localStorage.getItem(PREFS_KEY);
+        if (!raw) return;
+        const prefs = JSON.parse(raw);
+        if (prefs.stage) {
+            document.getElementById("stage-select").value = prefs.stage;
+        }
+        if (prefs.autoLoop !== undefined) {
+            document.getElementById("auto-loop").checked = prefs.autoLoop;
+        }
+        if (prefs.skipBuy !== undefined) {
+            document.getElementById("skip-buy").checked = prefs.skipBuy;
+        }
+    } catch (_) {
+        // ignore corrupt data
+    }
+}
+
+// Listen for changes
+document.getElementById("stage-select").addEventListener("change", savePrefs);
+document.getElementById("auto-loop").addEventListener("change", savePrefs);
+document.getElementById("skip-buy").addEventListener("change", savePrefs);
+
+// ==========================================
 // 初始化
 // ==========================================
+restorePrefs();
 applyI18n();
 
 // Auto-scroll button default active
