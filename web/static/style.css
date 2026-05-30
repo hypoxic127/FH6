@@ -5,7 +5,7 @@
 /* --- CSS Variables --- */
 :root {
     /* Core palette — deep midnight blue */
-    --bg-primary: #060a18;
+    --bg-primary: #070b1a;
     --bg-secondary: #0c1228;
     --bg-card: rgba(14, 20, 42, 0.55);
     --bg-card-hover: rgba(22, 30, 58, 0.7);
@@ -57,7 +57,8 @@
 
 body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-    background: var(--bg-primary);
+    /* Step 1: Deep midnight blue — NOT pure black, has blue-tint spatial depth */
+    background: #070b1a;
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
@@ -66,76 +67,78 @@ body {
     overflow-x: hidden;
 }
 
-/* --- Mesh Gradient Glow Layer (底层霓虹弥散光) --- */
+/* =============================================
+   Step 2: Ambient Light — 径向渐变模拟霓虹氛围灯
+   ============================================= */
 body::after {
     content: "";
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     background:
-        /* Top-left: Horizon Pink bloom */
-        radial-gradient(ellipse 700px 500px at 0% 0%, rgba(255, 45, 120, 0.14), transparent 70%),
-        /* Top-right: subtle magenta */
-        radial-gradient(ellipse 500px 400px at 95% 5%, rgba(168, 85, 247, 0.08), transparent 70%),
-        /* Bottom-right: Electric Blue bloom */
-        radial-gradient(ellipse 650px 550px at 100% 90%, rgba(61, 139, 255, 0.13), transparent 70%),
-        /* Bottom-left: warm orange accent */
-        radial-gradient(ellipse 450px 350px at 5% 95%, rgba(255, 140, 34, 0.07), transparent 70%),
-        /* Center: faint purple haze for depth */
-        radial-gradient(ellipse 500px 400px at 50% 45%, rgba(168, 85, 247, 0.05), transparent 70%);
+        /* Top-left: cyan/teal headlight bloom */
+        radial-gradient(ellipse 800px 600px at -5% -5%, rgba(0, 229, 200, 0.12), transparent 70%),
+        /* Top-right: magenta/pink neon sign */
+        radial-gradient(ellipse 600px 500px at 100% 0%, rgba(255, 45, 120, 0.10), transparent 70%),
+        /* Bottom-right: Electric Blue street glow */
+        radial-gradient(ellipse 750px 600px at 105% 95%, rgba(61, 139, 255, 0.14), transparent 70%),
+        /* Bottom-left: warm orange tail-light */
+        radial-gradient(ellipse 500px 400px at 0% 100%, rgba(255, 140, 34, 0.08), transparent 70%),
+        /* Center: deep purple haze — depth anchor */
+        radial-gradient(ellipse 600px 500px at 50% 40%, rgba(120, 60, 200, 0.06), transparent 70%);
     z-index: 0;
     pointer-events: none;
 }
 
-/* --- Racing Decal Stripes + Carbon Fiber (赛车拉花斜切线 + 碳纤维) --- */
+/* =============================================
+   Step 3: Film Grain Noise — 消除塑料感的黑科技
+   SVG feTurbulence → base64 噪点纹理覆盖层
+   ============================================= */
+body .container::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    opacity: 0.45;
+    z-index: 0;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+
+/* =============================================
+   Step 2.5: Racing Decal Stripes (赛车拉花斜切线)
+   ============================================= */
 body::before {
     content: "";
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     background:
-        /* Wide racing decal stripes — 12° slant, fluorescent red + rally yellow */
+        /* Wide racing stripes — 12° slant */
         repeating-linear-gradient(
             168deg,
             transparent,
             transparent 80px,
-            rgba(255, 45, 90, 0.04) 80px,
-            rgba(255, 45, 90, 0.04) 84px,
+            rgba(255, 45, 90, 0.035) 80px,
+            rgba(255, 45, 90, 0.035) 84px,
             transparent 84px,
             transparent 120px,
-            rgba(255, 210, 50, 0.03) 120px,
-            rgba(255, 210, 50, 0.03) 123px,
+            rgba(255, 210, 50, 0.025) 120px,
+            rgba(255, 210, 50, 0.025) 123px,
             transparent 123px,
             transparent 200px
         ),
-        /* Thinner accent stripes — offset rhythm */
+        /* Thin accent stripes */
         repeating-linear-gradient(
             168deg,
             transparent,
             transparent 300px,
-            rgba(61, 139, 255, 0.025) 300px,
-            rgba(61, 139, 255, 0.025) 302px,
+            rgba(61, 139, 255, 0.02) 300px,
+            rgba(61, 139, 255, 0.02) 302px,
             transparent 302px,
-            transparent 340px,
-            rgba(255, 45, 120, 0.02) 340px,
-            rgba(255, 45, 120, 0.02) 341px,
-            transparent 341px,
             transparent 500px
-        ),
-        /* Carbon fiber micro-texture — subtle surface grain */
-        repeating-linear-gradient(
-            45deg,
-            transparent,
-            transparent 2px,
-            rgba(255, 255, 255, 0.01) 2px,
-            rgba(255, 255, 255, 0.01) 4px
-        ),
-        repeating-linear-gradient(
-            -45deg,
-            transparent,
-            transparent 2px,
-            rgba(255, 255, 255, 0.007) 2px,
-            rgba(255, 255, 255, 0.007) 4px
         );
     z-index: 0;
     pointer-events: none;
@@ -359,17 +362,25 @@ body::before {
     font-size: 1.1rem;
 }
 
-/* --- Glassmorphism Card Base --- */
+/* --- Step 4 & 5: Glassmorphism Panels — 毛玻璃 + 边缘立体感 --- */
 .card,
 .progress-bar,
 .controls,
 .log-section,
 .guide-details {
     background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
+    /* Step 5a: 1px reflective edge — 模拟玻璃切面反光 */
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.12);
     border-radius: var(--radius);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+    /* Step 4: Backdrop blur + color boost */
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+    /* Step 5b: Float shadow — Z轴立体深度 */
+    box-shadow:
+        0 4px 30px rgba(0, 0, 0, 0.4),
+        0 1px 3px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* --- Status Cards --- */
@@ -427,9 +438,13 @@ body::before {
 
 .card:hover {
     background: var(--bg-card-hover);
-    border-color: rgba(255, 45, 120, 0.25);
-    box-shadow: 0 4px 24px var(--glow-pink);
-    transform: translateY(-2px);
+    border-color: rgba(255, 45, 120, 0.3);
+    border-top-color: rgba(255, 255, 255, 0.18);
+    box-shadow:
+        0 8px 40px rgba(255, 45, 120, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transform: translateY(-3px);
 }
 
 .card:hover::before {
