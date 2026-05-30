@@ -12,16 +12,14 @@ import numpy as np
 from colorama import Fore, Style
 
 from engine.utils import (
-    find_game_window,
+    find_game_window,  # noqa: F401 — re-exported via macro/__init__.py
     force_foreground,
     get_client_rect,
     log_error,
-    log_info,
-    log_success,
     log_warning,
     safe_print,
 )
-from engine.utils import press_button as _press_button
+from engine.utils import press_button as _press_button  # noqa: F401 — re-exported
 
 # ==========================================
 # 全局配置参数

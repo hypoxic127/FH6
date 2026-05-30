@@ -11,7 +11,6 @@ FH6_AutoBot 公共工具模块 (utils.py)
 """
 
 import ctypes
-import os
 import sys
 import time
 from ctypes import wintypes

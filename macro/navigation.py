@@ -6,12 +6,11 @@ macro/navigation.py — 菜单导航、视觉刹车、返回车库
 import time
 
 import cv2
-import numpy as np
 import pytesseract
 import vgamepad as vg
 
 import engine.ocr as module_ocr
-from engine.utils import log_error, log_info, log_success, log_warning, safe_print
+from engine.utils import log_info, log_success, log_warning, safe_print
 from engine.utils import press_button as _press_button
 from macro.core import capture_raw_screenshot, capture_screenshot
 
