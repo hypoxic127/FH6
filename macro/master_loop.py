@@ -277,6 +277,8 @@ def run_master_bot_loop(
                             module_farm_skills.main(gamepad=gamepad)
                             log_success("刷图模块已返回！正在验证技能点...")
 
+                        except BotStoppedError:
+                            raise
                         except Exception as e:
                             log_error(f"模块运行中出现错误: {e}")
                             try:
@@ -367,6 +369,8 @@ def run_master_bot_loop(
                     loop_count += 1
                     time.sleep(2.0)
 
+            except BotStoppedError:
+                raise
             except Exception as e:
                 log_error(f"状态 {current_state} 执行中发生异常: {e}")
                 log_warning("尝试等待 5 秒后重试当前状态...")
