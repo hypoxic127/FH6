@@ -12,7 +12,6 @@ module_state_detect.py — 无模板状态检测引擎
     state = detector.detect(resized_frame)
 """
 
-
 import cv2
 import numpy as np
 import pytesseract
@@ -51,7 +50,6 @@ RACING_ROIS = {
     "NEXT_SCREEN": {"roi": (0.80, 0.95, 0.35, 0.65)},
     "HUD_SPEED": {"roi": (0.75, 0.98, 0.80, 0.98)},
 }
-
 
 
 def compute_hist(roi_bgr, bins=(18, 16)):
@@ -410,7 +408,6 @@ class StateDetector:
         if "my fav" in text or "favorites" in text:
             return False  # 未激活，还需要继续翻
         return True  # 已翻过该标签或已激活
-
 
 
 # ===================================================================
