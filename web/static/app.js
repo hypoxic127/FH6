@@ -7,6 +7,74 @@
 // ==========================================
 // i18n 双语系统
 // ==========================================
+const GUIDE_EN = `
+<h3>🖥️ Prerequisites</h3>
+<ol>
+    <li><strong>Python 3.10+</strong></li>
+    <li><strong>Tesseract OCR</strong> — <a href="https://github.com/UB-Mannheim/tesseract/releases" target="_blank">Download</a> (check "Add to PATH")</li>
+    <li><strong>ViGEmBus</strong> driver — <a href="https://github.com/ViGEm/ViGEmBus/releases" target="_blank">Download</a> (restart required)</li>
+    <li>Game must run in <strong>Windowed</strong> or <strong>Borderless Windowed</strong> mode</li>
+    <li>Recommended resolution: <strong>2560×1440</strong></li>
+</ol>
+<h3>🎮 In-Game Preparation</h3>
+<ol>
+    <li><strong>Set language to English</strong> (OCR depends on English text)</li>
+    <li><strong>Buy main car</strong>: 1998 Subaru Impreza 22B-STI Version</li>
+    <li><strong>Install S2 tune</strong>: Any S2-class tune (PI badge = blue)</li>
+    <li><strong>Favorite blueprint</strong>: Share code <code>890169683</code></li>
+</ol>
+<p class="warn">⚠️ The S2 blue PI badge is how the bot distinguishes "keep" vs "deletable" cars.</p>
+<h3>🚀 How to Use</h3>
+<ol>
+    <li>Select a <strong>Start Stage</strong> from the dropdown above</li>
+    <li>Optionally check <strong>Auto Loop</strong> for continuous cycling</li>
+    <li>Click <strong>▶ Start Bot</strong> — the bot runs in background</li>
+    <li>Monitor progress via the Live Logs and status cards</li>
+    <li>Click <strong>⏹ Stop Bot</strong> to stop at any time</li>
+</ol>
+<h3>📊 Stage Descriptions</h3>
+<table>
+    <tr><th>Stage</th><th>Description</th></tr>
+    <tr><td>🏎️ Farm</td><td>OCR scans skill points → auto-enters EventLab to farm up to 999</td></tr>
+    <tr><td>🛒 Buy</td><td>Navigate to Car Collection → batch-purchase 33 Subaru Imprezas</td></tr>
+    <tr><td>⚡ Upgrade</td><td>Enter garage → select each NEW Impreza → spend skill points</td></tr>
+    <tr><td>🗑️ Sell</td><td>Enter garage → batch-remove upgraded Imprezas (keep S2 main car)</td></tr>
+</table>`;
+
+const GUIDE_ZH = `
+<h3>🖥️ 前置要求</h3>
+<ol>
+    <li><strong>Python 3.10+</strong></li>
+    <li><strong>Tesseract OCR</strong> — <a href="https://github.com/UB-Mannheim/tesseract/releases" target="_blank">下载安装</a>（安装时勾选 Add to PATH）</li>
+    <li><strong>ViGEmBus</strong> 驱动 — <a href="https://github.com/ViGEm/ViGEmBus/releases" target="_blank">下载安装</a>（安装后需重启）</li>
+    <li>游戏需运行在 <strong>窗口化</strong> 或 <strong>无边框窗口</strong> 模式</li>
+    <li>建议分辨率：<strong>2560×1440</strong></li>
+</ol>
+<h3>🎮 游戏内准备</h3>
+<ol>
+    <li><strong>游戏语言设置为英文</strong>（OCR 识别依赖英文文本）</li>
+    <li><strong>购买主力车</strong>：1998 Subaru Impreza 22B-STI Version</li>
+    <li><strong>安装 S2 级改装</strong>：任意 S2 改装方案（PI 徽章显示蓝色）</li>
+    <li><strong>收藏蓝图</strong>：搜索代码 <code>890169683</code></li>
+</ol>
+<p class="warn">⚠️ 主力车的 S2 蓝色 PI 徽章是程序区分「保留车」与「可删除车」的关键依据。</p>
+<h3>🚀 使用方法</h3>
+<ol>
+    <li>从上方下拉框选择 <strong>起始阶段</strong></li>
+    <li>如需持续循环，勾选 <strong>自动循环</strong></li>
+    <li>点击 <strong>▶ 启动</strong> — Bot 在后台运行</li>
+    <li>通过实时日志和状态卡片监控进度</li>
+    <li>点击 <strong>⏹ 停止</strong> 随时中止</li>
+</ol>
+<h3>📊 阶段说明</h3>
+<table>
+    <tr><th>阶段</th><th>描述</th></tr>
+    <tr><td>🏎️ 刷点</td><td>OCR 扫描技能点 → 自动进入 EventLab 刷满 999</td></tr>
+    <tr><td>🛒 买车</td><td>导航至 Car Collection → 批量购买 33 辆 Subaru Impreza</td></tr>
+    <tr><td>⚡ 加点</td><td>进入车库 → 逐辆选择 NEW 标签 Impreza → 消耗技能点</td></tr>
+    <tr><td>🗑️ 卖车</td><td>进入车库 → 批量移除已升级 Impreza（保留 S2 主力车）</td></tr>
+</table>`;
+
 const I18N = {
     en: {
         subtitle: "Forza Horizon 6 AFK Farming",
@@ -40,6 +108,8 @@ const I18N = {
         stateBuy: "Buy Cars",
         stateUpgrade: "Upgrade",
         stateSell: "Sell Cars",
+        guideTitle: "📖 Usage Guide",
+        guideContent: GUIDE_EN,
     },
     zh: {
         subtitle: "Forza Horizon 6 全自动挂机工具",
@@ -73,6 +143,8 @@ const I18N = {
         stateBuy: "买车",
         stateUpgrade: "加技能点",
         stateSell: "卖车",
+        guideTitle: "📖 使用说明",
+        guideContent: GUIDE_ZH,
     },
 };
 
@@ -86,6 +158,11 @@ function applyI18n() {
     document.querySelectorAll("[data-i18n]").forEach((el) => {
         const key = el.getAttribute("data-i18n");
         el.textContent = t(key);
+    });
+    // Update HTML content blocks (guide)
+    document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-html");
+        el.innerHTML = t(key);
     });
     // Update language toggle button text
     document.getElementById("lang-toggle").textContent = t("langToggle");

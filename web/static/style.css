@@ -475,3 +475,113 @@ body {
 .progress-stage.active .stage-icon {
     animation: pulse 2s infinite;
 }
+
+/* --- Usage Guide --- */
+.guide-section {
+    margin-top: 20px;
+}
+
+.guide-details {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.guide-summary {
+    padding: 14px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    list-style: none;
+    transition: background var(--transition);
+    user-select: none;
+}
+
+.guide-summary::-webkit-details-marker { display: none; }
+
+.guide-summary::before {
+    content: "▸ ";
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    display: inline-block;
+}
+
+.guide-details[open] .guide-summary::before {
+    content: "▾ ";
+}
+
+.guide-summary:hover {
+    background: var(--bg-card-hover);
+}
+
+.guide-content {
+    padding: 0 20px 20px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.8;
+}
+
+.guide-content h3 {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin: 20px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+
+.guide-content h3:first-child {
+    margin-top: 8px;
+}
+
+.guide-content ul, .guide-content ol {
+    padding-left: 20px;
+    margin: 6px 0;
+}
+
+.guide-content li {
+    margin: 4px 0;
+}
+
+.guide-content code {
+    background: var(--bg-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.8rem;
+    color: var(--accent-cyan);
+}
+
+.guide-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.8rem;
+}
+
+.guide-content th, .guide-content td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+.guide-content th {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.guide-content .warn {
+    color: var(--accent-yellow);
+    font-weight: 600;
+}
+
+.guide-content a {
+    color: var(--accent-blue);
+    text-decoration: none;
+}
+
+.guide-content a:hover {
+    text-decoration: underline;
+}
