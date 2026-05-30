@@ -101,8 +101,6 @@ class StateDetector:
     def _load_references(self):
         """从 JSON 文件加载校准参考数据。"""
         if not os.path.exists(self.ref_path):
-            log_warning(f"[StateDetector] 参考数据文件不存在: {self.ref_path}")
-            log_warning("[StateDetector] 请先运行 tool_calibrate_states.py 采集校准数据")
             return
 
         try:
