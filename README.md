@@ -1,4 +1,4 @@
-# 🏎️ FH6 AutoBot — Forza Horizon 6 Fully Automated AFK Farming Tool
+# 🏎️ FH6 AutoBot — A Never-Ending AFK Farming Machine
 
 [![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
@@ -8,8 +8,8 @@
 > Forza Horizon 6, powered by **Computer Vision (OpenCV + Tesseract OCR)**
 > and **Virtual Gamepad (ViGEmBus)**.
 >
-> 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 与 **虚拟手柄 (ViGEmBus)** 的
-> Forza Horizon 6 全自动技能点无限循环系统。
+> 一个永不落幕的全自动挂机工具 —— 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 与
+> **虚拟手柄 (ViGEmBus)** 的 Forza Horizon 6 全自动技能点无限循环系统。
 
 ---
 
