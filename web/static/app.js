@@ -256,10 +256,12 @@ socket.on("state_update", (data) => {
     document.getElementById("skill-points").textContent = data.skill_points || 0;
 
     if (data.uptime_seconds) {
-        document.getElementById("uptime").textContent = formatUptime(data.uptime_seconds);
+        document.getElementById("uptime").innerHTML = formatUptime(data.uptime_seconds);
     }
 
     updateStageProgress(data.current_state);
+    updateArc("arc-loop", data.loop_count || 0, 50);
+    updateArc("arc-sp", data.skill_points || 0, 500);
 });
 
 socket.on("bot_status", (data) => {
@@ -460,7 +462,8 @@ function formatUptime(seconds) {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    const cls = botRunning ? "colon blink" : "colon";
+    return `${pad(h)}<span class="${cls}">:</span>${pad(m)}<span class="${cls}">:</span>${pad(s)}`;
 }
 
 function pad(n) {
@@ -476,6 +479,18 @@ function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==========================================
+// SVG 转速表弧线
+// ==========================================
+const ARC_LENGTH = 100.53; // half-circle circumference for r=32
+
+function updateArc(id, value, max) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const ratio = Math.min(value / max, 1);
+    el.style.strokeDashoffset = ARC_LENGTH * (1 - ratio);
 }
 
 // ==========================================
