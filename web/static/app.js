@@ -311,15 +311,50 @@ function appendLog(data) {
 }
 
 // ==========================================
-// 阶段进度
+// 阶段进度（completed / active / pending）
 // ==========================================
+const STAGE_ORDER = [
+    "STATE_FARM_POINTS",
+    "STATE_BUY_CARS",
+    "STATE_UPGRADE_CARS",
+    "STATE_TRASH_CARS",
+];
+
+const CONNECTOR_IDS = [
+    "conn-farm-buy",
+    "conn-buy-upgrade",
+    "conn-upgrade-sell",
+];
+
 function updateStageProgress(state) {
+    const activeIdx = STAGE_ORDER.indexOf(state);
     const stages = document.querySelectorAll(".progress-stage");
-    stages.forEach((el) => {
-        if (el.dataset.stage === state) {
+
+    stages.forEach((el, i) => {
+        el.classList.remove("active", "completed");
+
+        if (activeIdx < 0) return; // IDLE — all grey
+
+        if (i < activeIdx) {
+            el.classList.add("completed");
+        } else if (i === activeIdx) {
             el.classList.add("active");
-        } else {
-            el.classList.remove("active");
+        }
+        // i > activeIdx: remains pending (default grey)
+    });
+
+    // Update connectors
+    CONNECTOR_IDS.forEach((id, i) => {
+        const conn = document.getElementById(id);
+        if (!conn) return;
+        conn.classList.remove("completed", "flowing");
+
+        if (activeIdx < 0) return;
+
+        if (i < activeIdx) {
+            conn.classList.add("completed");
+        } else if (i === activeIdx) {
+            conn.classList.add("flowing");
         }
     });
 }
