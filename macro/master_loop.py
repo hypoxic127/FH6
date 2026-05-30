@@ -13,6 +13,7 @@ import vgamepad as vg
 from colorama import Fore, Style
 
 import engine.ocr as module_ocr
+from engine.event_bus import get_bus
 from engine.utils import log_error, log_info, log_success, log_warning
 from macro.core import (
     CARS_TO_PROCESS,
@@ -191,6 +192,7 @@ def run_master_bot_loop(
 
                         log_success(f"已选中第 {upgraded_count} 辆车并进入详情页，正在执行加点宏...")
                         remaining_points = action_upgrade_car_skills(hwnd, gamepad)
+                        get_bus().emit("stats_update", {"super_wheelspins": upgraded_count})
 
                         # 触发条件 2: Available Points < 30 → 技能点不足，进入删车
                         if remaining_points is not None and remaining_points < 30:

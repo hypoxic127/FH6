@@ -83,7 +83,7 @@ const I18N = {
         currentStage: "Current Stage",
         loopCount: "Loop Count",
         uptime: "Uptime",
-        skillPoints: "Skill Points",
+        superWheelspins: "Super Wheelspins",
         stageFarm: "Farm",
         stageBuy: "Buy",
         stageUpgrade: "Upgrade",
@@ -120,7 +120,7 @@ const I18N = {
         currentStage: "当前阶段",
         loopCount: "循环次数",
         uptime: "运行时长",
-        skillPoints: "技能点",
+        superWheelspins: "超级轮盘",
         stageFarm: "刷点",
         stageBuy: "买车",
         stageUpgrade: "加点",
@@ -253,7 +253,7 @@ socket.on("state_update", (data) => {
     stateEl._rawState = data.current_state;
     stateEl.textContent = formatState(data.current_state);
     document.getElementById("loop-count").textContent = data.loop_count || 0;
-    document.getElementById("skill-points").textContent = data.skill_points || 0;
+    document.getElementById("super-wheelspins").textContent = data.super_wheelspins || 0;
 
     if (data.uptime_seconds) {
         document.getElementById("uptime").innerHTML = formatUptime(data.uptime_seconds);
@@ -261,7 +261,7 @@ socket.on("state_update", (data) => {
 
     updateStageProgress(data.current_state);
     updateArc("arc-loop", data.loop_count || 0, 50);
-    updateArc("arc-sp", data.skill_points || 0, 500);
+    updateArc("arc-sp", data.super_wheelspins || 0, 30);
 });
 
 socket.on("bot_status", (data) => {

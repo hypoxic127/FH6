@@ -22,7 +22,7 @@ class StateManager:
     聚合以下状态信息：
     - current_state: 当前阶段 (STATE_FARM_POINTS 等)
     - loop_count: 循环次数
-    - skill_points: 当前技能点
+    - super_wheelspins: 已获得的超级轮盘数
     - bot_running: bot 是否正在运行
     - start_time: 启动时间戳
     - recent_logs: 最近 N 条日志（供新连接回放）
@@ -36,6 +36,7 @@ class StateManager:
             "current_state": "IDLE",
             "loop_count": 0,
             "skill_points": 0,
+            "super_wheelspins": 0,
             "cars_bought": 0,
             "cars_upgraded": 0,
             "bot_running": False,
@@ -70,7 +71,7 @@ class StateManager:
     def _on_stats_update(self, data: dict[str, Any]) -> None:
         """处理统计更新事件。"""
         with self._lock:
-            for key in ("skill_points", "cars_bought", "cars_upgraded"):
+            for key in ("skill_points", "super_wheelspins", "cars_bought", "cars_upgraded"):
                 if key in data:
                     self._state[key] = data[key]
 
