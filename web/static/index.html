@@ -15,8 +15,27 @@
                 <span class="subtitle" data-i18n="subtitle">Forza Horizon 6 AFK Farming</span>
             </div>
             <div class="header-right">
-                <button id="qr-toggle" class="btn btn-lang" onclick="toggleQR()">📱 QR</button>
-                <button id="lang-toggle" class="btn btn-lang" onclick="toggleLang()">🌐 中文</button>
+                <!-- QR Hover Popover -->
+                <div class="qr-popover-wrap">
+                    <button class="btn-icon" id="qr-toggle">📱</button>
+                    <div class="qr-popover" id="qr-popover">
+                        <div class="qr-popover-title" data-i18n="qrTitle">📱 Scan to access on mobile</div>
+                        <div id="qr-canvas"></div>
+                        <div id="qr-url" class="qr-url"></div>
+                    </div>
+                </div>
+                <!-- Language Dropdown -->
+                <div class="lang-dropdown-wrap">
+                    <button class="btn-icon" id="lang-toggle" onclick="toggleLangDropdown()">🌐</button>
+                    <div class="lang-dropdown" id="lang-dropdown">
+                        <div class="lang-option" data-lang="en" onclick="setLang('en')">
+                            <span class="lang-flag">🇺🇸</span> English
+                        </div>
+                        <div class="lang-option" data-lang="zh" onclick="setLang('zh')">
+                            <span class="lang-flag">🇨🇳</span> 中文
+                        </div>
+                    </div>
+                </div>
                 <span id="connection-status" class="badge badge-disconnected" data-i18n="disconnected">⚡ Disconnected</span>
             </div>
         </header>
@@ -80,25 +99,45 @@
 
         <!-- Controls -->
         <section class="controls">
-            <div class="control-group">
-                <label for="stage-select" data-i18n="startStage">Start Stage</label>
-                <select id="stage-select">
-                    <option value="STATE_FARM_POINTS" data-i18n="optFarm">🏎️ Farm Skill Points</option>
-                    <option value="STATE_BUY_CARS" data-i18n="optBuy">🛒 Buy Cars</option>
-                    <option value="STATE_UPGRADE_CARS" data-i18n="optUpgrade">⚡ Upgrade Cars</option>
-                    <option value="STATE_TRASH_CARS" data-i18n="optSell">🗑️ Sell Cars</option>
-                </select>
+            <div class="control-row">
+                <!-- Custom Select -->
+                <div class="control-group">
+                    <label for="stage-select" data-i18n="startStage">Start Stage</label>
+                    <div class="select-wrapper">
+                        <select id="stage-select">
+                            <option value="STATE_FARM_POINTS" data-i18n="optFarm">🏎️ Farm Skill Points</option>
+                            <option value="STATE_BUY_CARS" data-i18n="optBuy">🛒 Buy Cars</option>
+                            <option value="STATE_UPGRADE_CARS" data-i18n="optUpgrade">⚡ Upgrade Cars</option>
+                            <option value="STATE_TRASH_CARS" data-i18n="optSell">🗑️ Sell Cars</option>
+                        </select>
+                        <svg class="select-arrow" viewBox="0 0 16 16" fill="none">
+                            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Toggle Switches -->
+                <div class="control-group">
+                    <label class="toggle-label">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="auto-loop">
+                            <span class="toggle-slider"></span>
+                        </div>
+                        <span data-i18n="autoLoop">Auto Loop</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label class="toggle-label">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="skip-buy">
+                            <span class="toggle-slider"></span>
+                        </div>
+                        <span data-i18n="skipBuy">Skip Buy</span>
+                    </label>
+                </div>
             </div>
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="auto-loop"> <span data-i18n="autoLoop">Auto Loop (4-stage cycle)</span>
-                </label>
-            </div>
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="skip-buy"> <span data-i18n="skipBuy">Skip Buy Stage</span>
-                </label>
-            </div>
+
+            <!-- Buttons -->
             <div class="control-buttons">
                 <button id="btn-start" class="btn btn-start" onclick="startBot()">
                     <span data-i18n="btnStart">▶ Start Bot</span>
@@ -106,7 +145,7 @@
                 <button id="btn-stop" class="btn btn-stop" onclick="stopBot()" disabled>
                     <span data-i18n="btnStop">⏹ Stop Bot</span>
                 </button>
-                <button class="btn btn-clear" onclick="clearLogs()">
+                <button class="btn btn-clear btn-ghost" onclick="clearLogs()">
                     <span data-i18n="btnClear">🗑 Clear Logs</span>
                 </button>
             </div>
@@ -131,15 +170,6 @@
                 </div>
             </details>
         </section>
-    </div>
-
-    <!-- QR Code Overlay -->
-    <div id="qr-overlay" class="qr-overlay" onclick="toggleQR()">
-        <div class="qr-modal" onclick="event.stopPropagation()">
-            <div class="qr-title" data-i18n="qrTitle">📱 Scan to access on mobile</div>
-            <div id="qr-canvas"></div>
-            <div id="qr-url" class="qr-url"></div>
-        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>

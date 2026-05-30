@@ -166,8 +166,6 @@ function applyI18n() {
         const key = el.getAttribute("data-i18n-html");
         el.innerHTML = t(key);
     });
-    // Update language toggle button text
-    document.getElementById("lang-toggle").textContent = t("langToggle");
     // Update connection badge
     const badge = document.getElementById("connection-status");
     if (socket.connected) {
@@ -182,13 +180,30 @@ function applyI18n() {
     if (stateEl._rawState) {
         stateEl.textContent = formatState(stateEl._rawState);
     }
+    // Highlight active language option
+    document.querySelectorAll(".lang-option").forEach((el) => {
+        el.classList.toggle("active", el.dataset.lang === currentLang);
+    });
 }
 
-function toggleLang() {
-    currentLang = currentLang === "en" ? "zh" : "en";
+function setLang(lang) {
+    currentLang = lang;
     localStorage.setItem("fh6_lang", currentLang);
     applyI18n();
+    document.getElementById("lang-dropdown").classList.remove("open");
 }
+
+function toggleLangDropdown() {
+    document.getElementById("lang-dropdown").classList.toggle("open");
+}
+
+// Close dropdowns on outside click
+document.addEventListener("click", (e) => {
+    const langWrap = document.querySelector(".lang-dropdown-wrap");
+    if (langWrap && !langWrap.contains(e.target)) {
+        document.getElementById("lang-dropdown").classList.remove("open");
+    }
+});
 
 // ==========================================
 // WebSocket 连接
@@ -436,8 +451,8 @@ function generateQR(url) {
 }
 
 function toggleQR() {
-    const overlay = document.getElementById("qr-overlay");
-    overlay.classList.toggle("visible");
+    const popover = document.getElementById("qr-popover");
+    popover.classList.toggle("pinned");
 }
 
 // ==========================================
