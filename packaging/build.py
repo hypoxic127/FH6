@@ -5,9 +5,9 @@ build.py — FH6 AutoBot 一键打包脚本
 将项目打包为独立可执行文件（无需安装 Python）。
 
 用法:
-    python build.py
+    python packaging/build.py
 
-输出: dist/FH6AutoBot/ 目录，包含 FH6AutoBot.exe 和所有依赖 DLL。
+输出: dist/FH6AutoBot.exe 单文件可执行程序。
 
 前置条件:
     - Python 3.10+
@@ -27,8 +27,9 @@ import sys
 
 def main() -> int:
     """执行 PyInstaller 打包流程。"""
-    project_root: str = os.path.dirname(os.path.abspath(__file__))
-    spec_file: str = os.path.join(project_root, "FH6AutoBot.spec")
+    packaging_dir: str = os.path.dirname(os.path.abspath(__file__))
+    project_root: str = os.path.dirname(packaging_dir)
+    spec_file: str = os.path.join(packaging_dir, "FH6AutoBot.spec")
     dist_dir: str = os.path.join(project_root, "dist")
     build_dir: str = os.path.join(project_root, "build")
 
@@ -68,20 +69,18 @@ def main() -> int:
         return 1
 
     # 验证输出
-    exe_path: str = os.path.join(dist_dir, "FH6AutoBot", "FH6AutoBot.exe")
+    exe_path: str = os.path.join(dist_dir, "FH6AutoBot.exe")
     if os.path.exists(exe_path):
         size_mb: float = os.path.getsize(exe_path) / (1024 * 1024)
         print()
         print("=" * 50)
         print("  ✅ 打包成功！")
-        print(f"  📦 输出路径: {os.path.join(dist_dir, 'FH6AutoBot')}")
-        print(f"  📄 可执行文件: {exe_path}")
+        print(f"  📦 输出路径: {exe_path}")
         print(f"  📏 文件大小: {size_mb:.1f} MB")
         print()
         print("  使用方法:")
-        print("    1. 将 dist/FH6AutoBot/ 文件夹复制到目标电脑")
-        print("    2. 确保目标电脑已安装 Tesseract OCR 和 ViGEmBus")
-        print("    3. 双击 FH6AutoBot.exe 即可运行")
+        print("    1. 确保目标电脑已安装 Tesseract OCR 和 ViGEmBus")
+        print("    2. 双击 FH6AutoBot.exe 即可运行")
         print("=" * 50)
     else:
         print(f"  ⚠️ 未找到输出文件: {exe_path}")

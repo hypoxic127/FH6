@@ -3,7 +3,7 @@
 FH6AutoBot.spec — PyInstaller 打包配置（优化版）
 ================================================
 用法:
-    pyinstaller FH6AutoBot.spec
+    pyinstaller packaging/FH6AutoBot.spec
 
 生成: dist/FH6AutoBot.exe（--onefile 单文件模式）
 
@@ -20,11 +20,13 @@ import sys
 
 block_cipher = None
 
-# 项目根目录 — SPECPATH 由 PyInstaller 注入，指向 .spec 文件所在目录
+# 项目根目录 — SPECPATH 指向 packaging/，需上溯一级到项目根
 try:
-    PROJECT_ROOT = os.path.abspath(SPECPATH)
+    PROJECT_ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
+    PACKAGING_DIR = os.path.abspath(SPECPATH)
 except NameError:
-    PROJECT_ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
+    PACKAGING_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 a = Analysis(
     [os.path.join(PROJECT_ROOT, "main_bot.py")],
@@ -61,7 +63,7 @@ a = Analysis(
     ],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[os.path.join(PROJECT_ROOT, "hook_utf8.py")],
+    runtime_hooks=[os.path.join(PACKAGING_DIR, "hook_utf8.py")],
     excludes=[
         # === 不需要的 PIL 格式插件（通过 binary filter 移除大文件）===
         # PIL 核心 (PIL.Image) 需保留 — pytesseract 依赖它
