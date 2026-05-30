@@ -4,12 +4,12 @@
 
 /* --- CSS Variables --- */
 :root {
-    /* Core palette */
-    --bg-primary: #080b12;
-    --bg-secondary: #0e1320;
-    --bg-card: rgba(16, 22, 40, 0.65);
-    --bg-card-hover: rgba(24, 32, 56, 0.75);
-    --bg-log: rgba(8, 11, 18, 0.85);
+    /* Core palette — deep midnight blue */
+    --bg-primary: #060a18;
+    --bg-secondary: #0c1228;
+    --bg-card: rgba(14, 20, 42, 0.55);
+    --bg-card-hover: rgba(22, 30, 58, 0.7);
+    --bg-log: rgba(6, 10, 24, 0.8);
     --border: rgba(255, 255, 255, 0.08);
     --border-glow: rgba(255, 255, 255, 0.12);
 
@@ -38,10 +38,10 @@
     --glow-green: rgba(0, 229, 200, 0.2);
     --glow-orange: rgba(255, 140, 34, 0.15);
 
-    /* Glass */
-    --glass-bg: rgba(16, 22, 40, 0.55);
+    /* Glass — increased transparency for mesh gradient bleed */
+    --glass-bg: rgba(12, 18, 38, 0.45);
     --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-blur: 16px;
+    --glass-blur: 20px;
 
     --radius: 14px;
     --radius-sm: 8px;
@@ -66,14 +66,34 @@ body {
     overflow-x: hidden;
 }
 
-/* --- Carbon Fiber Texture + Mesh Gradient Background --- */
+/* --- Mesh Gradient Glow Layer (底层霓虹弥散光) --- */
+body::after {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background:
+        /* Top-left: Horizon Pink bloom */
+        radial-gradient(ellipse 700px 500px at 0% 0%, rgba(255, 45, 120, 0.14), transparent 70%),
+        /* Top-right: subtle magenta */
+        radial-gradient(ellipse 500px 400px at 95% 5%, rgba(168, 85, 247, 0.08), transparent 70%),
+        /* Bottom-right: Electric Blue bloom */
+        radial-gradient(ellipse 650px 550px at 100% 90%, rgba(61, 139, 255, 0.13), transparent 70%),
+        /* Bottom-left: warm orange accent */
+        radial-gradient(ellipse 450px 350px at 5% 95%, rgba(255, 140, 34, 0.07), transparent 70%),
+        /* Center: faint purple haze for depth */
+        radial-gradient(ellipse 500px 400px at 50% 45%, rgba(168, 85, 247, 0.05), transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* --- Carbon Fiber Texture (最上层碳纤维纹理) --- */
 body::before {
     content: "";
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
     background:
-        /* Carbon fiber diagonal weave */
         repeating-linear-gradient(
             45deg,
             transparent,
@@ -88,22 +108,6 @@ body::before {
             rgba(255, 255, 255, 0.008) 2px,
             rgba(255, 255, 255, 0.008) 4px
         );
-    z-index: 0;
-    pointer-events: none;
-}
-
-body::after {
-    content: "";
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background:
-        /* Top-left pink glow */
-        radial-gradient(ellipse 600px 400px at 5% 10%, rgba(255, 45, 120, 0.08), transparent),
-        /* Bottom-right blue glow */
-        radial-gradient(ellipse 500px 500px at 90% 85%, rgba(61, 139, 255, 0.07), transparent),
-        /* Center subtle purple */
-        radial-gradient(ellipse 400px 300px at 50% 50%, rgba(168, 85, 247, 0.04), transparent);
     z-index: 0;
     pointer-events: none;
 }
