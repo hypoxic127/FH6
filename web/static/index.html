@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FH6 AutoBot — Control Panel</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>🏎️ FH6 AutoBot</h1>
+                <span class="subtitle">Forza Horizon 6 AFK Farming</span>
+            </div>
+            <div class="header-right">
+                <span id="connection-status" class="badge badge-disconnected">⚡ Disconnected</span>
+            </div>
+        </header>
+
+        <!-- Status Cards -->
+        <section class="cards">
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <div class="card-body">
+                    <div class="card-label">Current Stage</div>
+                    <div class="card-value" id="current-state">IDLE</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon">🔄</div>
+                <div class="card-body">
+                    <div class="card-label">Loop Count</div>
+                    <div class="card-value" id="loop-count">0</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon">⏱️</div>
+                <div class="card-body">
+                    <div class="card-label">Uptime</div>
+                    <div class="card-value" id="uptime">00:00:00</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon">⭐</div>
+                <div class="card-body">
+                    <div class="card-label">Skill Points</div>
+                    <div class="card-value" id="skill-points">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stage Progress -->
+        <section class="progress-section">
+            <div class="progress-bar">
+                <div class="progress-stage" id="stage-farm" data-stage="STATE_FARM_POINTS">
+                    <span class="stage-icon">🏎️</span>
+                    <span class="stage-label">Farm</span>
+                </div>
+                <div class="progress-connector"></div>
+                <div class="progress-stage" id="stage-buy" data-stage="STATE_BUY_CARS">
+                    <span class="stage-icon">🛒</span>
+                    <span class="stage-label">Buy</span>
+                </div>
+                <div class="progress-connector"></div>
+                <div class="progress-stage" id="stage-upgrade" data-stage="STATE_UPGRADE_CARS">
+                    <span class="stage-icon">⚡</span>
+                    <span class="stage-label">Upgrade</span>
+                </div>
+                <div class="progress-connector"></div>
+                <div class="progress-stage" id="stage-sell" data-stage="STATE_TRASH_CARS">
+                    <span class="stage-icon">🗑️</span>
+                    <span class="stage-label">Sell</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section class="controls">
+            <div class="control-group">
+                <label for="stage-select">Start Stage</label>
+                <select id="stage-select">
+                    <option value="">🔄 Auto Loop (Full Cycle)</option>
+                    <option value="STATE_FARM_POINTS">🏎️ Farm Skill Points</option>
+                    <option value="STATE_BUY_CARS">🛒 Buy Cars</option>
+                    <option value="STATE_UPGRADE_CARS">⚡ Upgrade Cars</option>
+                    <option value="STATE_TRASH_CARS">🗑️ Sell Cars</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="skip-buy"> Skip Buy Stage
+                </label>
+            </div>
+            <div class="control-buttons">
+                <button id="btn-start" class="btn btn-start" onclick="startBot()">
+                    ▶ Start Bot
+                </button>
+                <button id="btn-stop" class="btn btn-stop" onclick="stopBot()" disabled>
+                    ⏹ Stop Bot
+                </button>
+                <button class="btn btn-clear" onclick="clearLogs()">
+                    🗑 Clear Logs
+                </button>
+            </div>
+        </section>
+
+        <!-- Log Console -->
+        <section class="log-section">
+            <div class="log-header">
+                <h2>📜 Live Logs</h2>
+                <span id="log-count" class="log-counter">0 entries</span>
+            </div>
+            <div id="log-container" class="log-container">
+                <div class="log-empty">Waiting for connection...</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

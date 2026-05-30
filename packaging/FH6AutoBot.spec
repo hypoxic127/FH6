@@ -44,6 +44,8 @@ a = Analysis(
             _vgamepad_dir,
             "win", "vigem", "client"
         ), os.path.join("vgamepad", "win", "vigem", "client")),
+        # Web UI 静态文件
+        (os.path.join(PROJECT_ROOT, "web", "static"), os.path.join("web", "static")),
     ],
     hiddenimports=[
         "engine",
@@ -65,6 +67,15 @@ a = Analysis(
         "vgamepad.win.vigem_commons",
         "mss",
         "mss.windows",
+        "web",
+        "web.server",
+        "web.state_manager",
+        "engine.event_bus",
+        "flask",
+        "flask_socketio",
+        "engineio",
+        "socketio",
+        "simple_websocket",
     ],
     hookspath=[],
     hooksconfig={},

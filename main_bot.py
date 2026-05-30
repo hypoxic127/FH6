@@ -98,8 +98,18 @@ def show_start_menu():
 
 
 if __name__ == "__main__":
-    # 显示菜单并获取用户选择的起始状态
-    initial_state, skip_buy = show_start_menu()
-    # 启动全自动主控状态机无限闭环
-    # run_master_bot_loop 会按 刷点→买车→加点→卖车 的顺序无限循环
-    run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="FH6 AutoBot — 全自动挂机工具")
+    parser.add_argument("--web", action="store_true", help="启动 Web UI 控制面板模式")
+    parser.add_argument("--port", type=int, default=6800, help="Web UI 端口 (默认 6800)")
+    args = parser.parse_args()
+
+    if args.web:
+        from web.server import start_server
+
+        start_server(port=args.port)
+    else:
+        # 终端交互模式
+        initial_state, skip_buy = show_start_menu()
+        run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy)
