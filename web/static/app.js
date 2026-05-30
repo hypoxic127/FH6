@@ -77,7 +77,7 @@ const GUIDE_ZH = `
 
 const I18N = {
     en: {
-        subtitle: "Forza Horizon 6 AFK Farming",
+        subtitle: "A Never-Ending AFK Farming Machine",
         connected: "⚡ Connected",
         disconnected: "⚡ Disconnected",
         currentStage: "Current Stage",
@@ -114,7 +114,7 @@ const I18N = {
         qrTitle: "📱 Scan to access on mobile",
     },
     zh: {
-        subtitle: "Forza Horizon 6 全自动挂机工具",
+        subtitle: "一个永不落幕的全自动挂机工具",
         connected: "⚡ 已连接",
         disconnected: "⚡ 未连接",
         currentStage: "当前阶段",
