@@ -90,9 +90,7 @@ EMPTY_SLOT_VARIANCE_THRESHOLD: float = 5.0  # 方差 ≤ 此值视为纯色
 # ==========================================
 
 
-def crop_card_roi(
-    image: np.ndarray | None, cursor_x: int, cursor_y: int
-) -> np.ndarray | None:
+def crop_card_roi(image: np.ndarray | None, cursor_x: int, cursor_y: int) -> np.ndarray | None:
     """根据光标中心坐标裁剪车辆卡片区域。
 
     在 1600×900 缩放画面中，以 (cursor_x, cursor_y) 为中心，
@@ -219,10 +217,7 @@ def read_skill_points(img: np.ndarray) -> int | None:
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     # Tesseract 识别黑字白底效果最佳，确保数字为黑色、背景为白色
     # 检测当前极性：如果边缘像素多为黑色，说明背景是黑色，需要反转
-    border_mean = (
-        thresh[0, :].mean() + thresh[-1, :].mean() +
-        thresh[:, 0].mean() + thresh[:, -1].mean()
-    ) / 4
+    border_mean = (thresh[0, :].mean() + thresh[-1, :].mean() + thresh[:, 0].mean() + thresh[:, -1].mean()) / 4
     if border_mean < 128:
         # 白字黑底 → 反转为黑字白底
         thresh = cv2.bitwise_not(thresh)

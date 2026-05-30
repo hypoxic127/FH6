@@ -305,6 +305,7 @@ class FarmStateMachine:
             time.sleep(1.0)
             press_button(self.gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=0)
             self.is_racing = False
+            self.entering_race = True  # 防止过渡画面误识别为菜单标签（如 STORE）触发 RB
             time.sleep(3.0)
         else:
             log_success(f"Race finished! All {self.matches_completed} races completed! Pressing A to view rewards...")
@@ -381,6 +382,7 @@ class FarmStateMachine:
                     log_success(f"{remaining_matches} races remaining, pressing X to restart race...")
                     press_button(self.gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_X, delay=1.0)
                     press_button(self.gamepad, vg.XUSB_BUTTON.XUSB_GAMEPAD_A, delay=0)
+                    self.entering_race = True  # 防止过渡画面误识别为菜单标签
                     time.sleep(3.0)
                 else:
                     log_success(f"All {self.matches_completed} races completed! Pressing A to view rewards...")

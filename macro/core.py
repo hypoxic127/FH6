@@ -121,6 +121,7 @@ def capture_screenshot(hwnd):
         # GDI 句柄可能已损坏，重置 MSS 单例
         try:
             from engine.utils import reset_mss
+
             reset_mss()
         except Exception:
             pass
