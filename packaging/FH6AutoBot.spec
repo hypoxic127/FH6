@@ -16,6 +16,7 @@ FH6AutoBot.spec — PyInstaller 打包配置（优化版）
 """
 
 import os
+import importlib.util
 import sys
 
 block_cipher = None
@@ -28,6 +29,10 @@ except NameError:
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
     PACKAGING_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
 
+# 定位 vgamepad 包路径（不触发 __init__.py，避免 ViGEmBus 驱动连接）
+_vgamepad_spec = importlib.util.find_spec("vgamepad")
+_vgamepad_dir = os.path.dirname(_vgamepad_spec.origin)
+
 a = Analysis(
     [os.path.join(PROJECT_ROOT, "main_bot.py")],
     pathex=[PROJECT_ROOT],
@@ -36,7 +41,7 @@ a = Analysis(
         # vgamepad 的 ViGEmClient.dll 通过 ctypes 加载，PyInstaller 无法自动检测
         # 必须保持原始目录结构: vgamepad/win/vigem/client/x64/ViGEmClient.dll
         (os.path.join(
-            os.path.dirname(__import__("vgamepad").__file__),
+            _vgamepad_dir,
             "win", "vigem", "client"
         ), os.path.join("vgamepad", "win", "vigem", "client")),
     ],
