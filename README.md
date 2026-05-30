@@ -92,9 +92,10 @@ FH6_AutoBot/
 5. Recommended resolution / 建议分辨率: **2560×1440**
 
 #### 🎮 In-Game Preparation / 游戏内准备
-1. **Purchase main car / 购买主力车**: 1998 Subaru Impreza 22B-STI Version
-2. **Install S2 tune / 安装 S2 级改装**: Apply any S2-class tune (PI badge = blue / PI 徽章显示蓝色)
-3. **Favorite blueprint / 收藏蓝图**: Share code `890169683`
+1. **Set game language to English / 游戏语言必须设置为英文**: Settings → General → Language → English (OCR depends on English text / OCR 识别依赖英文文本)
+2. **Purchase main car / 购买主力车**: 1998 Subaru Impreza 22B-STI Version
+3. **Install S2 tune / 安装 S2 级改装**: Apply any S2-class tune (PI badge = blue / PI 徽章显示蓝色)
+4. **Favorite blueprint / 收藏蓝图**: Share code `890169683`
 
 > ⚠️ The S2 blue PI badge is the key indicator to distinguish "keep" vs "deletable" cars.
 >
