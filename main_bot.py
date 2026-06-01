@@ -97,19 +97,55 @@ def show_start_menu():
             print("  ❌ 无效选择，请输入 0-5 之间的数字。")
 
 
+def _select_mode() -> str:
+    """启动时让用户选择运行模式：WebUI 或控制台。
+
+    返回:
+        str: "web" 或 "console"
+    """
+    print("\n" + "=" * 50)
+    print("   FH6-AFK — 启动模式选择")
+    print("=" * 50)
+    print()
+    print("  [1] 🌐  Web UI 控制面板")
+    print("       浏览器可视化操作，支持手机远程监控")
+    print()
+    print("  [2] 💻  终端控制台模式")
+    print("       经典命令行交互，适合高级用户")
+    print()
+    print("=" * 50)
+
+    while True:
+        choice: str = input("  请选择模式 [1/2] (默认 1): ").strip()
+        if choice in ("", "1"):
+            return "web"
+        if choice == "2":
+            return "console"
+        print("  ❌ 无效选择，请输入 1 或 2。")
+
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="FH6 AutoBot — 全自动挂机工具")
-    parser.add_argument("--web", action="store_true", help="启动 Web UI 控制面板模式")
+    parser.add_argument("--web", action="store_true", help="直接启动 Web UI（跳过模式选择）")
+    parser.add_argument("--console", action="store_true", help="直接启动控制台（跳过模式选择）")
     parser.add_argument("--port", type=int, default=6800, help="Web UI 端口 (默认 6800)")
     args = parser.parse_args()
 
+    # 优先级：命令行参数 > 交互选择
     if args.web:
+        mode = "web"
+    elif args.console:
+        mode = "console"
+    else:
+        mode = _select_mode()
+
+    if mode == "web":
         from web.server import start_server
 
+        print(f"\n  🚀 正在启动 Web UI (http://localhost:{args.port}) ...\n")
         start_server(port=args.port)
     else:
-        # 终端交互模式
         initial_state, skip_buy = show_start_menu()
         run_master_bot_loop(initial_state=initial_state, skip_buy=skip_buy)
