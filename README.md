@@ -2,8 +2,8 @@
 
 **🌐 Language: English | [中文](README_zh-CN.md)**
 
-[![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
-[![Release](https://github.com/hypoxic127/FH6/actions/workflows/release.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/release.yml)
+[![CI](https://github.com/hypoxic127/FH6-AFK/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6-AFK/actions/workflows/ci.yml)
+[![Release](https://github.com/hypoxic127/FH6-AFK/actions/workflows/release.yml/badge.svg)](https://github.com/hypoxic127/FH6-AFK/actions/workflows/release.yml)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-Personal%20Use-f5c542)
@@ -97,8 +97,8 @@
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/hypoxic127/FH6.git
-cd FH6
+git clone https://github.com/hypoxic127/FH6-AFK.git
+cd FH6-AFK
 
 # 2. One-click install (auto-creates venv + installs dependencies)
 python setup.py

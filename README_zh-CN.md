@@ -2,8 +2,8 @@
 
 **🌐 语言: [English](README.md) | 中文**
 
-[![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
-[![Release](https://github.com/hypoxic127/FH6/actions/workflows/release.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/release.yml)
+[![CI](https://github.com/hypoxic127/FH6-AFK/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6-AFK/actions/workflows/ci.yml)
+[![Release](https://github.com/hypoxic127/FH6-AFK/actions/workflows/release.yml/badge.svg)](https://github.com/hypoxic127/FH6-AFK/actions/workflows/release.yml)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-Personal%20Use-f5c542)
@@ -97,8 +97,8 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/hypoxic127/FH6.git
-cd FH6
+git clone https://github.com/hypoxic127/FH6-AFK.git
+cd FH6-AFK
 
 # 2. 一键安装（自动创建虚拟环境 + 安装依赖）
 python setup.py
