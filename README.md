@@ -1,6 +1,6 @@
 # 🏎️ FH6 AutoBot — A Never-Ending AFK Farming Machine
 
-**一个永不落幕的全自动挂机工具**
+**🌐 Language: English | [中文](README_zh-CN.md)**
 
 [![CI](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/ci.yml)
 [![Release](https://github.com/hypoxic127/FH6/actions/workflows/release.yml/badge.svg)](https://github.com/hypoxic127/FH6/actions/workflows/release.yml)
@@ -8,290 +8,288 @@
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-Personal%20Use-f5c542)
 
-> **Forza Horizon 6** 全自动技能点无限循环挂机系统。
-> 基于 **计算机视觉 (OpenCV + Tesseract OCR)** 识别游戏画面状态，通过 **虚拟手柄 (ViGEmBus)** 模拟操作，实现 **零人工干预** 的闭环技能点刷取。
-> 提供 **赛博朋克风格 Web UI** 仪表盘，支持远程监控与一键操控。
+> A fully automated, infinite-loop Skill Points farming system for **Forza Horizon 6**.
+> Powered by **Computer Vision (OpenCV + Tesseract OCR)** and **Virtual Gamepad (ViGEmBus)**, achieving **zero human intervention** closed-loop farming.
+> Comes with a **Cyberpunk-styled Web UI** dashboard for remote monitoring and one-click control.
 
 ---
 
-## 📋 目录
+## 📋 Table of Contents
 
-- [✨ 核心特性](#-核心特性)
-- [🔄 工作流程](#-工作流程)
-- [🛠️ 技术栈](#️-技术栈)
-- [🚀 快速开始](#-快速开始)
-- [📖 使用指南](#-使用指南)
-- [📁 项目结构](#-项目结构)
-- [🧪 测试与 CI](#-测试与-ci)
-- [🔍 核心技术原理](#-核心技术原理)
-- [🤝 贡献指南](#-贡献指南)
-- [📝 许可证](#-许可证)
-
----
-
-## ✨ 核心特性
-
-| 特性 | 描述 |
-|:-----|:-----|
-| 🔁 **全自动四阶段循环** | 刷点 → 买车 → 加点 → 卖车，无限循环，睡觉挂机 |
-| 👁️ **计算机视觉状态机** | 颜色直方图 + OCR 混合检测，精准识别 10+ 种游戏界面状态 |
-| 🎮 **虚拟手柄控制** | ViGEmBus 模拟 Xbox 360 手柄，原生级输入兼容 |
-| 🖥️ **Web UI** | 仪表盘 + 实时日志 + 手机扫码远程监控 |
-| ⏹️ **即时停止** | 线程注入技术，点击停止按钮后 Bot 立即终止 |
-| 🎰 **超级轮盘计数** | 自动统计已执行的加点宏次数 |
-| 📦 **一键打包** | PyInstaller 单文件 `.exe`，无需 Python 环境 |
-| 🧪 **95 个测试用例** | Ruff 代码检查 + Pytest 测试覆盖，GitHub Actions CI |
+- [✨ Features](#-features)
+- [🔄 Workflow](#-workflow)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [🚀 Getting Started](#-getting-started)
+- [📖 Usage](#-usage)
+- [📁 Project Structure](#-project-structure)
+- [🧪 Testing & CI](#-testing--ci)
+- [🔍 Technical Details](#-technical-details)
+- [🤝 Contributing](#-contributing)
+- [📝 License](#-license)
 
 ---
 
-## 🔄 工作流程
+## ✨ Features
+
+| Feature | Description |
+|:--------|:------------|
+| 🔁 **4-Stage Auto Loop** | Farm → Buy → Upgrade → Sell, infinite loop, sleep & farm |
+| 👁️ **Computer Vision State Machine** | Color histogram + OCR hybrid detection, identifies 10+ game UI states |
+| 🎮 **Virtual Gamepad** | ViGEmBus simulates Xbox 360 controller, native-level input |
+| 🖥️ **Web UI Dashboard** | Glassmorphism UI + real-time logs + QR code mobile monitoring |
+| ⏹️ **Instant Stop** | Thread injection technology, bot stops immediately on button click |
+| 🎰 **Super Wheelspin Counter** | Automatically tracks upgrade macro executions |
+| 📦 **One-Click Build** | PyInstaller single-file `.exe`, no Python required |
+| 🧪 **95 Test Cases** | Ruff linting + Pytest coverage, GitHub Actions CI |
+
+---
+
+## 🔄 Workflow
 
 ```
     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-    │  🏎️ 刷技能点 │────▶│  🛒 买车     │────▶│  ⚡ 加技能点 │────▶│  🗑️ 卖车    │
-    │  Farm Points│     │  Buy Cars   │     │ Upgrade Cars│     │ Trash Cars  │
+    │  🏎️ Farm     │────▶│  🛒 Buy      │────▶│  ⚡ Upgrade  │────▶│  🗑️ Sell     │
+    │ Skill Points│     │    Cars     │     │    Cars     │     │    Cars     │
     └──────┬──────┘     └─────────────┘     └─────────────┘     └──────┬──────┘
            │                                                           │
-           │                    ♻️ 无限循环                             │
+           │                    ♻️ Infinite Loop                       │
            └───────────────────────────────────────────────────────────┘
 ```
 
-| 阶段 | 状态常量 | 说明 |
-|:----:|:---------|:-----|
-| 1️⃣ | `STATE_FARM_POINTS` | OCR 扫描技能点 → 自动进入 EventLab 刷满 999 |
-| 2️⃣ | `STATE_BUY_CARS` | 五步视觉导航 → 批量购买 33 辆 Subaru Impreza 22B-STI |
-| 3️⃣ | `STATE_UPGRADE_CARS` | 逐辆选择 NEW 标签车辆 → 消耗技能点升级技能树 |
-| 4️⃣ | `STATE_TRASH_CARS` | 批量移除已升级 Impreza（保留 S2 主力车） |
+| Stage | State Constant | Description |
+|:-----:|:---------------|:------------|
+| 1️⃣ | `STATE_FARM_POINTS` | OCR scans skill points → auto-enters EventLab to farm up to 999 |
+| 2️⃣ | `STATE_BUY_CARS` | Five-step visual navigation → batch-purchase 33 Subaru Impreza 22B-STIs |
+| 3️⃣ | `STATE_UPGRADE_CARS` | Select each car with NEW tag → spend skill points on skill tree |
+| 4️⃣ | `STATE_TRASH_CARS` | Batch-remove upgraded Imprezas (keeping S2 main car) |
 
 ---
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-| 类别 | 技术 | 用途 |
-|:-----|:-----|:-----|
-| **视觉引擎** | OpenCV, Tesseract OCR | 图像处理、文字识别、颜色检测 |
-| **数值计算** | NumPy | 直方图比对、图像矩阵运算 |
-| **屏幕捕获** | MSS | 高性能跨平台截图 |
-| **手柄模拟** | VGamepad + ViGEmBus | 虚拟 Xbox 360 手柄输入 |
-| **Web 服务** | Flask + Flask-SocketIO | 实时 Web UI 控制面板 |
-| **前端** | Vanilla JS + CSS3 | 毛玻璃仪表盘、WebSocket 实时日志 |
-| **测试** | Pytest + Ruff | 单元测试 + 代码质量检查 |
-| **打包** | PyInstaller | 一键构建单文件可执行程序 |
-| **CI/CD** | GitHub Actions | 自动化测试 + Release 发布 |
+| Category | Technology | Purpose |
+|:---------|:-----------|:--------|
+| **Vision Engine** | OpenCV, Tesseract OCR | Image processing, text recognition, color detection |
+| **Numerics** | NumPy | Histogram comparison, image matrix operations |
+| **Screen Capture** | MSS | High-performance cross-platform screenshots |
+| **Gamepad** | VGamepad + ViGEmBus | Virtual Xbox 360 controller input |
+| **Web Server** | Flask + Flask-SocketIO | Real-time Web UI control panel |
+| **Frontend** | Vanilla JS + CSS3 | Glassmorphism dashboard, WebSocket live logs |
+| **Testing** | Pytest + Ruff | Unit testing + code quality checks |
+| **Packaging** | PyInstaller | One-click single-file executable build |
+| **CI/CD** | GitHub Actions | Automated testing + Release publishing |
 
 ---
 
-## 🚀 快速开始
+## 🚀 Getting Started
 
-### 📋 前置要求
+### 📋 Prerequisites
 
-> ⚠️ 以下软件必须在运行前安装完成
+> ⚠️ The following software must be installed before running
 
-| 软件 | 版本 | 下载 | 备注 |
-|:-----|:-----|:-----|:-----|
-| **Python** | 3.10+ | [python.org](https://www.python.org/downloads/) | 安装时勾选 "Add to PATH" |
-| **Tesseract OCR** | 5.x | [下载链接](https://github.com/UB-Mannheim/tesseract/releases) | 安装时勾选 "Add to PATH" |
-| **ViGEmBus** | 最新版 | [下载链接](https://github.com/ViGEm/ViGEmBus/releases) | 安装后需 **重启电脑** |
+| Software | Version | Download | Notes |
+|:---------|:--------|:---------|:------|
+| **Python** | 3.10+ | [python.org](https://www.python.org/downloads/) | Check "Add to PATH" during install |
+| **Tesseract OCR** | 5.x | [Download](https://github.com/UB-Mannheim/tesseract/releases) | Check "Add to PATH" during install |
+| **ViGEmBus** | Latest | [Download](https://github.com/ViGEm/ViGEmBus/releases) | **Reboot required** after install |
 
-### 📥 安装步骤
+### 📥 Installation
 
 ```bash
-# 1. 克隆仓库
+# 1. Clone the repository
 git clone https://github.com/hypoxic127/FH6.git
 cd FH6
 
-# 2. 一键安装（自动创建虚拟环境 + 安装依赖）
+# 2. One-click install (auto-creates venv + installs dependencies)
 python setup.py
 
-# 3. 启动程序（Web UI 模式）
+# 3. Launch (Web UI mode)
 python main_bot.py --web
 ```
 
-### 🎮 游戏内准备
+### 🎮 In-Game Preparation
 
-在启动 Bot 之前，请确保完成以下设置：
+Before starting the bot, ensure the following:
 
-1. **游戏语言必须设置为英文** — OCR 识别依赖英文文本
-2. **游戏窗口模式** — 窗口化 或 无边框窗口（推荐分辨率 2560×1440）
-3. **购买主力车** — `1998 Subaru Impreza 22B-STI Version`
-4. **安装 S2 级改装** — 任意 S2 级调校（PI 徽章显示蓝色）
-5. **收藏 EventLab 蓝图** — 分享码 `890169683`
+1. **Game language must be set to English** — OCR depends on English text
+2. **Windowed mode** — Windowed or Borderless Windowed (recommended: 2560×1440)
+3. **Purchase main car** — `1998 Subaru Impreza 22B-STI Version`
+4. **Install S2 tune** — Any S2-class tune (PI badge = blue)
+5. **Favorite the EventLab blueprint** — Share code `890169683`
 
-> **⚠️ 重要：** 主力车的 **S2 蓝色 PI 徽章** 是程序区分 "保留车" 与 "可删除车" 的唯一判据。请务必确认主力车已安装 S2 调校。
+> **⚠️ Important:** The S2 **blue PI badge** on the main car is the sole indicator the program uses to distinguish "keep" vs "deletable" cars. Make sure your main car has an S2 tune applied.
 
 ---
 
-## 📖 使用指南
+## 📖 Usage
 
-### 🌐 Web UI 模式（推荐）
+### 🌐 Web UI Mode (Recommended)
 
 ```bash
-python main_bot.py --web              # 默认端口 6800
-python main_bot.py --web --port 8080  # 自定义端口
+python main_bot.py --web              # Default port 6800
+python main_bot.py --web --port 8080  # Custom port
 ```
 
-启动后浏览器访问 `http://localhost:6800`，即可看到控制面板：
+Open `http://localhost:6800` in your browser to access the control panel:
 
-- 🎯 **实时状态监控** — 当前阶段、循环次数、运行时长、超级轮盘数
-- 🔄 **流程进度条** — 可视化四阶段进度
-- ⚙️ **选择起始阶段** — 下拉选择从任意阶段开始
-- 📜 **实时日志终端** — 带语法高亮的日志流
-- 📱 **扫码远程监控** — 手机扫描 QR 码即可远程查看
+- 🎯 **Live Status** — Current stage, loop count, runtime, super wheelspin count
+- 🔄 **Progress Bar** — Visual 4-stage progress indicator
+- ⚙️ **Stage Selector** — Start from any stage via dropdown
+- 📜 **Live Log Terminal** — Syntax-highlighted real-time log stream
+- 📱 **QR Remote Monitoring** — Scan QR code to monitor from your phone
 
-### 💻 终端模式
+### 💻 Terminal Mode
 
 ```bash
 python main_bot.py
 ```
 
-| 选项 | 功能 | 使用场景 |
-|:----:|:-----|:---------|
-| `[0]` | 🔄 自动循环（全流程） | 主菜单，完整四阶段无限循环 |
-| `[1]` | 🏎️ 刷技能点 | 主菜单，进入 EventLab 跑图 |
-| `[2]` | 🛒 买车 | 主菜单，批量购买 Impreza |
-| `[3]` | ⚡ 加技能点 | 主菜单，消耗技能点升级 |
-| `[4]` | 🗑️ 卖车 | 车库内，需选中斯巴鲁品牌 |
-| `[5]` | ⏭️ 跳过买车循环 | 车库已有未加点的车时使用 |
+| Option | Function | When to Use |
+|:------:|:---------|:------------|
+| `[0]` | 🔄 Auto loop (full cycle) | Main menu — full 4-stage infinite loop |
+| `[1]` | 🏎️ Farm Skill Points | Main menu — enter EventLab |
+| `[2]` | 🛒 Buy Cars | Main menu — batch purchase Imprezas |
+| `[3]` | ⚡ Upgrade Cars | Main menu — spend skill points |
+| `[4]` | 🗑️ Sell Cars | In garage, Subaru brand selected |
+| `[5]` | ⏭️ Skip Buy loop | When garage already has un-upgraded cars |
 
-### 📦 打包为 EXE
+### 📦 Build Executable
 
 ```bash
 python packaging/build.py
 ```
 
-生成 `dist/FH6AutoBot.exe`，无需 Python 即可运行（仍需 Tesseract 和 ViGEmBus）。
+Produces `dist/FH6AutoBot.exe` — portable, no Python needed (Tesseract & ViGEmBus still required).
 
-> **💡 提示：** 推送 Git 版本标签（如 `git tag v1.2.0 && git push --tags`）会自动触发 GitHub Actions 构建并发布到 Release 页面。
+> **💡 Tip:** Push a git tag (e.g. `git tag v1.2.0 && git push --tags`) to auto-trigger GitHub Actions build and publish to the Releases page.
 
 ---
 
-## 📁 项目结构
+## 📁 Project Structure
 
 ```
 FH6_AutoBot/
 │
-├── main_bot.py                 # 🚀 主程序入口（终端 / Web UI）
+├── main_bot.py                 # 🚀 Entry point (Terminal / Web UI)
 │
-├── engine/                     # 🧠 感知引擎层
-│   ├── ocr.py                  #    计算机视觉（OCR + 颜色检测）
-│   ├── state_detect.py         #    游戏状态检测器（直方图 + OCR 混合）
-│   ├── event_bus.py            #    事件总线（日志/状态推送到 Web UI）
-│   ├── runtime.py              #    PyInstaller 运行时路径解析
-│   └── utils.py                #    日志 / 窗口操作 / 手柄 / MSS 截图
+├── engine/                     # 🧠 Perception Engine
+│   ├── ocr.py                  #    Computer vision (OCR + color detection)
+│   ├── state_detect.py         #    Game state detector (histogram + OCR hybrid)
+│   ├── event_bus.py            #    Event bus (log/state push to Web UI)
+│   ├── runtime.py              #    PyInstaller runtime path resolution
+│   └── utils.py                #    Logging / window ops / gamepad / MSS capture
 │
-├── macro/                      # 🎮 宏操作层
-│   ├── master_loop.py          #    主状态机（四阶段循环引擎）
-│   ├── core.py                 #    基础设施：截图、日志、常量
-│   ├── navigation.py           #    菜单导航 / 视觉制动 / 返回车库
-│   ├── purchase.py             #    五步 Impreza 购买导航
-│   ├── garage.py               #    车库网格：选择 / 删除 / 主力车导航
-│   └── upgrade.py              #    升级宏（Cannot Afford 检测）
+├── macro/                      # 🎮 Macro Operations
+│   ├── master_loop.py          #    Master state machine (4-stage loop engine)
+│   ├── core.py                 #    Infrastructure: screenshots, logging, constants
+│   ├── navigation.py           #    Menu navigation / visual braking / return-to-garage
+│   ├── purchase.py             #    5-step Impreza purchase navigation
+│   ├── garage.py               #    Garage grid: select / delete / main car nav
+│   └── upgrade.py              #    Upgrade macro (Cannot Afford detection)
 │
-├── farm/                       # 🏁 EventLab 刷图层
-│   └── skills.py               #    视觉状态机（自动驾驶 + 结算检测）
+├── farm/                       # 🏁 EventLab Farming
+│   └── skills.py               #    Visual state machine (auto-drive + finish detection)
 │
-├── web/                        # 🌐 Web UI 控制面板
-│   ├── server.py               #    Flask + SocketIO 服务端
-│   ├── state_manager.py        #    全局状态管理器
-│   └── static/                 #    前端资源
-│       ├── index.html          #      仪表盘页面
-│       ├── style.css           #      赛博朋克主题样式
-│       └── app.js              #      WebSocket 客户端逻辑
+├── web/                        # 🌐 Web UI Control Panel
+│   ├── server.py               #    Flask + SocketIO server
+│   ├── state_manager.py        #    Global state manager
+│   └── static/                 #    Frontend assets
+│       ├── index.html          #      Dashboard page
+│       ├── style.css           #      Cyberpunk theme styles
+│       └── app.js              #      WebSocket client logic
 │
-├── packaging/                  # 📦 构建与打包
-│   ├── build.py                #    一键 PyInstaller 构建脚本
-│   ├── FH6AutoBot.spec         #    PyInstaller spec（--onefile）
-│   └── hook_utf8.py            #    运行时钩子（Windows UTF-8 修复）
+├── packaging/                  # 📦 Build & Packaging
+│   ├── build.py                #    One-click PyInstaller build script
+│   ├── FH6AutoBot.spec         #    PyInstaller spec (--onefile)
+│   └── hook_utf8.py            #    Runtime hook (Windows UTF-8 fix)
 │
-├── tests/                      # 🧪 单元测试（95 个用例）
-├── tools/                      # 🔧 开发调试工具（不打包）
+├── tests/                      # 🧪 Unit Tests (95 cases)
+├── tools/                      # 🔧 Dev utilities (not packaged)
 │
 ├── .github/workflows/
-│   ├── ci.yml                  #    CI（Ruff 检查 + Pytest 测试）
-│   └── release.yml             #    Release（PyInstaller → GitHub Release）
+│   ├── ci.yml                  #    CI (Ruff check + Pytest)
+│   └── release.yml             #    Release (PyInstaller → GitHub Release)
 │
-├── setup.py                    # ⚙️ 一键环境安装脚本
-├── requirements.txt            # 📋 Python 依赖清单
-├── ruff.toml                   # 🔍 Ruff 代码检查配置
-└── pytest.ini                  # 🧪 Pytest 测试配置
+├── setup.py                    # ⚙️ One-click environment setup
+├── requirements.txt            # 📋 Python dependencies
+├── ruff.toml                   # 🔍 Ruff linter config
+└── pytest.ini                  # 🧪 Pytest config
 ```
 
 ---
 
-## 🧪 测试与 CI
+## 🧪 Testing & CI
 
 ```bash
-# 运行全部测试
+# Run all tests
 python -m pytest
 
-# 代码检查
+# Lint check
 python -m ruff check .
 
-# 格式校验
+# Format check
 python -m ruff format --check .
 ```
 
-| CI 任务 | 触发条件 | 描述 |
-|:--------|:---------|:-----|
-| **Lint** | Push / PR | Ruff 代码检查 + 格式校验 |
-| **Test** | Push / PR | 95 个测试用例（ubuntu-latest） |
-| **Release** | `v*` tag | PyInstaller 构建 → GitHub Release 发布 |
+| CI Job | Trigger | Description |
+|:-------|:--------|:------------|
+| **Lint** | Push / PR | Ruff lint + format validation |
+| **Test** | Push / PR | 95 test cases (ubuntu-latest) |
+| **Release** | `v*` tag | PyInstaller build → GitHub Release |
 
 ---
 
-## 🔍 核心技术原理
+## 🔍 Technical Details
 
-### 👁️ 视觉状态检测
+### 👁️ Visual State Detection
 
-- **直方图 + OCR 混合** — `StateDetector` 先用颜色分布特征快速筛选候选状态，再用 OCR 精确验证
-- **PI 徽章颜色检测** — HSV 色彩空间分析：蓝色 = S2 主力车（保留），橙色 = 可删除车
+- **Histogram + OCR Hybrid** — `StateDetector` uses color distribution features for fast candidate screening, then OCR for precise verification
+- **PI Badge Color Detection** — HSV color space analysis: blue = S2 main car (keep), orange = deletable
 
-### 🔤 OCR 识别策略
+### 🔤 OCR Strategy
 
-- **多 PSM 策略投票** — 同时使用 PSM 8/7/13 三种模式，取多数一致结果
-- **OTSU 自适应阈值** — 防止单位数被误补零
-- **零技能点保底检测** — 识别 "No Skill Points Available" 文本
+- **Multi-PSM Voting** — Uses PSM 8/7/13 modes simultaneously, majority-consistent result wins
+- **OTSU Adaptive Thresholding** — Prevents single-digit zero-padding errors
+- **Zero Skill Points Fallback** — Detects "No Skill Points Available" text
 
-### 🎯 车库网格导航
+### 🎯 Garage Grid Navigation
 
-- **打字机遍历** — 逐列、从上到下扫描 3×N 网格
-- **三重校验** — OCR 关键词（2/3 一致）+ NEW 黄色标签 + LEGENDARY 橙色稀有度
-- **Cannot Afford 检测** — 弹窗自动关闭，停止购买流程
+- **Typewriter Traversal** — Column by column, top to bottom (3×N grid)
+- **Triple Verification** — OCR keywords (2/3 match) + NEW yellow tag + LEGENDARY orange rarity
+- **Cannot Afford Detection** — Auto-dismisses popup, stops purchasing
 
-### 📦 构建与打包
+### 📦 Build & Packaging
 
-- **PyInstaller --onefile** — 单文件 ~44MB 可执行程序
-- **运行时路径层** — `engine/runtime.py` 统一路径解析（开发/打包双模式）
-- **UTF-8 控制台修复** — `hook_utf8.py` 解决 Windows 中文日志乱码
-
----
-
-## 🤝 贡献指南
-
-欢迎任何形式的贡献！请遵循以下流程：
-
-1. **Fork** 本仓库
-2. 创建特性分支 (`git checkout -b feat/amazing-feature`)
-3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
-4. 推送到分支 (`git push origin feat/amazing-feature`)
-5. 创建 **Pull Request**
-
-### 开发规范
-
-- 🐍 代码风格：PEP 8（Ruff 强制检查）
-- 🏷️ 提交格式：[Conventional Commits](https://www.conventionalcommits.org/)（`feat` / `fix` / `docs` / `refactor` / `chore`）
-- ✅ 所有 PR 必须通过 CI 检查（Lint + Test）
+- **PyInstaller --onefile** — Single ~44MB executable
+- **Runtime Path Layer** — `engine/runtime.py` unified path resolution (dev/packaged dual-mode)
+- **UTF-8 Console Fix** — `hook_utf8.py` resolves Chinese log garbling on Windows
 
 ---
 
-## 📝 许可证
+## 🤝 Contributing
 
-本项目仅供 **学习与个人使用**。
+Contributions are welcome! Please follow this workflow:
+
+1. **Fork** this repository
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a **Pull Request**
+
+### Development Standards
+
+- 🐍 Code style: PEP 8 (enforced by Ruff)
+- 🏷️ Commit format: [Conventional Commits](https://www.conventionalcommits.org/) (`feat` / `fix` / `docs` / `refactor` / `chore`)
+- ✅ All PRs must pass CI checks (Lint + Test)
+
+---
+
+## 📝 License
 
 This project is for **learning and personal use** only.
 
 ---
 
-**如果这个项目对你有帮助，请给一个 ⭐ Star 支持一下！**
+**If this project helps you, please give it a ⭐ Star!**
 
 Made with ❤️ by [hypoxic127](https://github.com/hypoxic127)
