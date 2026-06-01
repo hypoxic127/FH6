@@ -248,7 +248,7 @@ python -m ruff format --check .
 
 ### 🔤 OCR 识别策略
 
-- **多 PSM 策略投票** — 同时使用 PSM 8/7/13 三种模式，取多数一致结果
+- **PSM 7 单行模式** — 使用 Tesseract PSM 7 单行文本模式，高效识别纯数字
 - **OTSU 自适应阈值** — 防止单位数被误补零
 - **零技能点保底检测** — 识别 "No Skill Points Available" 文本
 

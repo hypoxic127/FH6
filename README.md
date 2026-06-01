@@ -248,7 +248,7 @@ python -m ruff format --check .
 
 ### 🔤 OCR Strategy
 
-- **Multi-PSM Voting** — Uses PSM 8/7/13 modes simultaneously, majority-consistent result wins
+- **PSM 7 Single-Line Mode** — Uses Tesseract PSM 7 for clean single-line digit recognition
 - **OTSU Adaptive Thresholding** — Prevents single-digit zero-padding errors
 - **Zero Skill Points Fallback** — Detects "No Skill Points Available" text
 

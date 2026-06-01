@@ -91,37 +91,6 @@ class TestCropCardRoi:
 
 
 # ================================================================
-# BP-4: Counter σ║öσ£¿µûçΣ╗╢Θí╢Θâ¿σ»╝σàÑ
-# ================================================================
-
-
-class TestBP4CounterImport:
-    """Counter σ║öσ£¿µ¿íσ¥ùΘí╢Θâ¿σ»╝σàÑ∩╝îΣ╕ìσ£¿σç╜µò░σåàΘâ¿πÇé"""
-
-    def test_counter_at_module_level(self) -> None:
-        """ocr.py σ║öσ£¿µûçΣ╗╢Θí╢Θâ¿σ»╝σàÑ CounterπÇé"""
-        import engine.ocr as ocr_module
-
-        source: str = inspect.getsource(ocr_module)
-        lines: list[str] = source.split("\n")
-
-        # µúÇµƒÑσëì 40 Φíî∩╝êimport σî║σƒƒ∩╝ëµÿ»σÉªσîàσÉ½ Counter σ»╝σàÑ
-        top_section: str = "\n".join(lines[:40])
-        assert "from collections import Counter" in top_section, (
-            "BP-4: 'from collections import Counter' σ║öσ£¿µûçΣ╗╢Θí╢Θâ¿σ»╝σàÑσî║"
-        )
-
-    def test_no_counter_inside_functions(self) -> None:
-        """σç╜µò░σåàΘâ¿Σ╕ìσ║öµ£ë Counter τÜäσ╗╢Φ┐ƒσ»╝σàÑπÇé"""
-        from engine.ocr import read_skill_points
-
-        source: str = inspect.getsource(read_skill_points)
-        assert "from collections import Counter" not in source, (
-            "BP-4: read_skill_points Σ╗ìσ£¿σç╜µò░σåàΘâ¿σ»╝σàÑ Counter"
-        )
-
-
-# ================================================================
 # BP-3: ocr.py σà¼σà▒σç╜µò░σ║öµ£ëτ▒╗σ₧ïµáçµ│¿
 # ================================================================
 

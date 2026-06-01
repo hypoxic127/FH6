@@ -20,7 +20,7 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 """
 
 import os
-from collections import Counter
+
 
 import cv2
 import numpy as np
@@ -228,45 +228,17 @@ def read_skill_points(img: np.ndarray) -> int | None:
     except Exception:
         pass
 
-    # ===== 多策略 OCR：依次尝试不同的页面分割模式（PSM） =====
-    # PSM 8: 单个词（适合纯数字）
-    # PSM 7: 单行文本
-    # PSM 13: 原始行（不做任何预处理，最宽松）
-    results = []
-    for psm in [8, 7, 13]:
-        config = f"--psm {psm} -c tessedit_char_whitelist=0123456789"
-        try:
-            text = pytesseract.image_to_string(upscaled, config=config).strip()
-            if text.isdigit():
-                val = int(text)
-                results.append(val)
-                safe_print(f"{Fore.CYAN}[OCR PSM{psm}]{Style.RESET_ALL} 识别结果: {val}")
-        except Exception:
-            pass
-
-    # ===== 投票机制：从多个 PSM 的结果中选取最可信的值 =====
-    if results:
-        non_zero = [v for v in results if v > 0]
-        if non_zero:
-            # 有非零结果时，只在非零结果中投票（OCR 经常把有效数字误读为 0）
-            counter = Counter(non_zero)
-            most_common_val, most_common_count = counter.most_common(1)[0]
-            if most_common_count >= 2:
-                # 至少 2 个 PSM 给出相同结果 → 高置信度
-                safe_print(
-                    f"{Fore.GREEN}[OCR 投票]{Style.RESET_ALL} 非零多数一致: {most_common_val} (出现 {most_common_count} 次)"
-                )
-                return most_common_val
-            else:
-                # 非零结果不一致时，取最大值（保守策略，避免少算技能点）
-                best = max(non_zero)
-                safe_print(
-                    f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 非零无多数一致，取最大值: {best} (候选: {results})"
-                )
-                return best
-        else:
-            # 所有 PSM 都返回 0 → 需要进一步确认是否真的是零技能点
-            safe_print(f"{Fore.YELLOW}[OCR 投票]{Style.RESET_ALL} 所有模式都识别为 0，进入零技能点保底确认...")
+    # ===== OCR 识别（PSM 7: 单行文本模式） =====
+    config = "--psm 7 -c tessedit_char_whitelist=0123456789"
+    try:
+        text = pytesseract.image_to_string(upscaled, config=config).strip()
+        if text.isdigit():
+            val = int(text)
+            safe_print(f"{Fore.CYAN}[OCR PSM7]{Style.RESET_ALL} 识别结果: {val}")
+            if val > 0:
+                return val
+    except Exception:
+        pass
 
     # ===== 零技能点保底机制 =====
     # 当数字白名单 OCR 未检测到任何数字时，执行无限制 OCR 扫描。
