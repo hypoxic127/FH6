@@ -21,7 +21,6 @@ FH6_AutoBot 计算机视觉模块 (module_ocr.py)
 
 import os
 
-
 import cv2
 import numpy as np
 import pytesseract
