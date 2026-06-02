@@ -227,17 +227,25 @@ def read_skill_points(img: np.ndarray) -> int | None:
     except Exception:
         pass
 
-    # ===== OCR 识别（PSM 7: 单行文本模式） =====
-    config = "--psm 7 -c tessedit_char_whitelist=0123456789"
-    try:
-        text = pytesseract.image_to_string(upscaled, config=config).strip()
-        if text.isdigit():
-            val = int(text)
-            safe_print(f"{Fore.CYAN}[OCR PSM7]{Style.RESET_ALL} 识别结果: {val}")
-            if val > 0:
-                return val
-    except Exception:
-        pass
+    # ===== OCR 识别（PSM 8 + PSM 7 双模式，取位数最多的结果） =====
+    # PSM 8（单词模式）适合孤立数字，PSM 7（单行模式）更宽松。
+    # OCR 更容易漏读数字而非幻读，因此取位数最多（值最大）的结果最可靠。
+    best_val: int | None = None
+    for psm in (8, 7):
+        config = f"--psm {psm} -c tessedit_char_whitelist=0123456789"
+        try:
+            text = pytesseract.image_to_string(upscaled, config=config).strip()
+            if text.isdigit():
+                val = int(text)
+                safe_print(f"{Fore.CYAN}[OCR PSM{psm}]{Style.RESET_ALL} 识别结果: {val}")
+                if best_val is None or len(text) > len(str(best_val)):
+                    best_val = val
+        except Exception:
+            pass
+
+    if best_val is not None and best_val > 0:
+        safe_print(f"{Fore.GREEN}[OCR 最终]{Style.RESET_ALL} 采用值: {best_val}")
+        return best_val
 
     # ===== 零技能点保底机制 =====
     # 当数字白名单 OCR 未检测到任何数字时，执行无限制 OCR 扫描。

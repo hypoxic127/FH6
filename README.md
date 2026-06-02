@@ -248,7 +248,7 @@ python -m ruff format --check .
 
 ### 🔤 OCR Strategy
 
-- **PSM 7 Single-Line Mode** — Uses Tesseract PSM 7 for clean single-line digit recognition
+- **Dual PSM Mode** — Uses PSM 8 (single word) + PSM 7 (single line), picks the result with most digits
 - **OTSU Adaptive Thresholding** — Prevents single-digit zero-padding errors
 - **Zero Skill Points Fallback** — Detects "No Skill Points Available" text
 
