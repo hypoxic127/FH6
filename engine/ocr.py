@@ -218,8 +218,9 @@ def read_skill_points(img: np.ndarray) -> int | None:
         thresh = cv2.bitwise_not(thresh)
 
     # 加大边距（40px 白色）+ 放大 4 倍（提升 Tesseract 小字识别率）
+    # 注意：必须使用 INTER_LINEAR，INTER_CUBIC 在 4x 时会导致字形失真，Tesseract 漏读首位数字
     padded = cv2.copyMakeBorder(thresh, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-    upscaled = cv2.resize(padded, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+    upscaled = cv2.resize(padded, None, fx=4, fy=4, interpolation=cv2.INTER_LINEAR)
 
     # 保存预处理后图片（便于排查）
     try:
@@ -227,11 +228,11 @@ def read_skill_points(img: np.ndarray) -> int | None:
     except Exception:
         pass
 
-    # ===== OCR 识别（PSM 8 + PSM 7 双模式，取位数最多的结果） =====
-    # PSM 8（单词模式）适合孤立数字，PSM 7（单行模式）更宽松。
-    # OCR 更容易漏读数字而非幻读，因此取位数最多（值最大）的结果最可靠。
+    # ===== OCR 识别（PSM 6 + PSM 7 双模式，取位数最多的结果） =====
+    # PSM 6（自动分割）在各种缩放/边距组合下表现最稳定。
+    # PSM 7（单行模式）作为备选。取位数最多的结果（漏读比幻读更常见）。
     best_val: int | None = None
-    for psm in (8, 7):
+    for psm in (6, 7):
         config = f"--psm {psm} -c tessedit_char_whitelist=0123456789"
         try:
             text = pytesseract.image_to_string(upscaled, config=config).strip()
