@@ -190,10 +190,10 @@ def read_skill_points(img: np.ndarray) -> int | None:
     h, w, _ = img.shape
 
     # 技能点数字位于暂停菜单 Car Mastery 区域下方（蓝底黑字）
-    # 手动标注确认：h: 72%-77%, w: 28.5%-30.5%
+    # 手动标注确认：h: 72%-77%, w: 27.5%-30.5%
     crop_y1 = int(h * 0.72)
     crop_y2 = int(h * 0.77)
-    crop_x1 = int(w * 0.285)
+    crop_x1 = int(w * 0.275)
     crop_x2 = int(w * 0.305)
 
     roi = img[crop_y1:crop_y2, crop_x1:crop_x2]
