@@ -195,17 +195,16 @@ class FarmStateMachine:
         self.should_exit: bool = False
 
     def load_saved_state(self) -> None:
-        """尝试加载已保存的比赛进度，跳过 OCR 扫描。"""
+        """尝试加载已保存的比赛进度（仅恢复完成场次，技能点重新扫描）。"""
         saved_state = load_race_state()
         if saved_state is not None:
-            self.matches_needed, self.matches_completed, last_updated = saved_state
-            self.points_scanned = True
+            _, self.matches_completed, last_updated = saved_state
+            # 不设置 points_scanned = True，确保启动后先去 CARS 扫描最新技能点
             print(f"\n{Fore.CYAN}{Style.BRIGHT}==========================================")
             print("   [RESUMING FROM SAVED STATE]")
-            print(f"   Matches Remaining: {self.matches_needed}")
             print(f"   Matches Already Completed: {self.matches_completed}")
             print(f"   Last Updated: {last_updated}")
-            print("   (Skipping OCR skill points scan)")
+            print("   (Will scan CARS tab for fresh skill points)")
             print("==========================================\n")
 
     def _update_client_rect(self) -> None:
